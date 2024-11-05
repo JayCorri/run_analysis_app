@@ -1,2 +1,5 @@
 .env
 venv/
+/tests
+__pycache__/
+check_lengths.py
