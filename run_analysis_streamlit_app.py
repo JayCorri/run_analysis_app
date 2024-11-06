@@ -411,8 +411,19 @@ if auth_action == "Login":
             # Data visualization
             st.subheader("Run Analysis")
             with connect_to_snowflake() as conn:
-                query = f"SELECT run_type, distance, run_time FROM run_data WHERE user_id = (SELECT user_id FROM users WHERE username = '{input_username}')"
+                query = f"SELECT run_type, distance, run_time, `Stamina Run (minutes)` FROM run_data WHERE user_id = (SELECT user_id FROM users WHERE username = '{input_username}')"
                 df = pd.read_sql(query, conn)
+
+            # Parse `Stamina Run (minutes)` column if it exists
+            if 'Stamina Run (minutes)' in df.columns:
+                df['Stamina Run (minutes)'] = df['Stamina Run (minutes)'].apply(
+                    lambda x: {
+                        'num_sets': int(x.split('x')[0]),
+                        'duration_per_set': int(x.split('x')[1])
+                    } if isinstance(x, str) and 'x' in x else {'num_sets': 1, 'duration_per_set': int(x) if isinstance(x, str) else x}
+                )
+                # Convert nested dictionary to separate columns for compatibility
+                df = pd.concat([df, pd.json_normalize(df['Stamina Run (minutes)'])], axis=1).drop(columns=['Stamina Run (minutes)'])
 
             if not df.empty:
                 # Plot each run type
@@ -420,7 +431,7 @@ if auth_action == "Login":
                     run_data = df[df['run_type'] == run]
                     if not run_data.empty:
                         fig, ax = plt.subplots()
-                        ax.plot(run_data["distance"], run_data["time"], marker='o')
+                        ax.plot(run_data["distance"], run_data["run_time"], marker='o')
                         ax.set_title(f"{run} Run Analysis")
                         ax.set_xlabel("Distance (km)")
                         ax.set_ylabel("Time (minutes)")
