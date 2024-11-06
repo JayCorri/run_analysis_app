@@ -3,4 +3,3 @@ snowflake-connector-python
 bcrypt
 pandas
 matplotlib
-base64
