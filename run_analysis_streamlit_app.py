@@ -245,6 +245,116 @@ def weekly_schedule_view(weekly_schedule):
     # Display selected run type's goals and performance
     display_run_goal_and_performance(run_type, weekly_schedule)
 
+# Retrieve user's weekly schedule progress from Snowflake or default to Week 1 beginner goals
+def get_user_weekly_schedule(user_id, week_start_date):
+    """
+    Retrieves the user's weekly schedule progress for Endurance, Stamina, and Speed goals.
+    If no data exists, defaults to "Week 1" goals for an inexperienced runner.
+
+    :param user_id: Unique identifier for the user.
+    :param week_start_date: The start date of the week for the schedule.
+    :return: Dictionary with weekly goals for endurance, stamina, and speed.
+    Error Handling: Returns default values (Week 1 goals) if no data is available.
+    """
+    try:
+        with connect_to_snowflake() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    endurance_goal_distance, 
+                    endurance_goal_time,
+                    stamina_goal_sets, 
+                    stamina_goal_time_per_set,
+                    speed_goal_sets, 
+                    speed_goal_distance_per_set,
+                    speed_goal_time_per_set
+                FROM run_data_schema.USER_SCHEDULE_PROGRESS
+                WHERE user_id = %s AND week_start_date = %s
+            """, (user_id, week_start_date))
+            result = cursor.fetchone()
+            
+            if result:
+                # Return user's specific goals if data exists
+                return {
+                    "Endurance": {
+                        "Distance Goal": result[0] or 0,
+                        "Time Goal": result[1] or "N/A"
+                    },
+                    "Stamina": {
+                        "Sets": result[2] or 0,
+                        "Time per Set": result[3] or "N/A"
+                    },
+                    "Speed": {
+                        "Sets": result[4] or 0,
+                        "Distance per Set": result[5] or 0,
+                        "Time per Set": result[6] or "N/A"
+                    }
+                }
+            else:
+                # Default Week 1 goals for an inexperienced runner
+                return {
+                    "Endurance": {
+                        "Distance Goal": 2.0,             # 2 miles for endurance
+                        "Time Goal": "13'00\""           # 13 min/mile pace
+                    },
+                    "Stamina": {
+                        "Sets": 2,                      # 2 sets for stamina
+                        "Time per Set": "12"            # 12 minutes per set
+                    },
+                    "Speed": {
+                        "Sets": 4,                      # 4 intervals for speed
+                        "Distance per Set": 0.25,       # 0.25 miles per interval
+                        "Time per Set": "2'00\""        # 2 minutes per interval
+                    }
+                }
+    except ProgrammingError as e:
+        st.error("Error fetching weekly schedule. Please contact support.")
+        return {
+            "Endurance": {
+                "Distance Goal": 2.0,                    # Default to Week 1 goal if error
+                "Time Goal": "13'00\""
+            },
+            "Stamina": {
+                "Sets": 2,
+                "Time per Set": "12"
+            },
+            "Speed": {
+                "Sets": 4,
+                "Distance per Set": 0.25,
+                "Time per Set": "2'00\""
+            }
+        }
+
+# Provides a default set of weekly goals for new users
+def generate_default_weekly_goals():
+    """
+    Generates beginner-friendly weekly performance goals for Endurance, Stamina, 
+    and Speed based on recommended starting benchmarks. Music BPM is included 
+    to help maintain pace.
+
+    :return: Dictionary with initial target values for each run type.
+    Error Handling: N/A, static defaults are provided.
+    """
+    return {
+        "endurance_week": {
+            "distance": 3.0,         # Distance in miles
+            "pace": "11'00\"",       # Suggested pace
+            "music_bpm": 130         # Recommended music BPM
+        },
+        "stamina_week": {
+            "time": "16:00",         # Duration in minutes
+            "distance": 1.5,         # Suggested distance in miles
+            "pace": "10'30\"",       # Suggested pace
+            "music_bpm": 140         # Recommended music BPM
+        },
+        "speed_week": {
+            "intervals": 5,          # Number of intervals
+            "interval_time": "2:00", # Suggested time per interval
+            "pace": "8'30\"",        # Suggested pace per interval
+            "music_bpm": 150         # Recommended music BPM
+        }
+    }
+
 # Streamlit UI
 st.title("Personal Running Analysis")
 
