@@ -166,3 +166,12 @@ This approach keeps the codebase organized and makes switching between local tes
 - **Future Plans**:
   - Build an end-user interface for password reset.
   - Test email and Snowflake interactions upon Streamlit Cloud deployment.
+
+## User Registration and Password Storage
+- Implemented user registration with bcrypt password hashing.
+- Updated password storage to use base64 encoding to meet Snowflake VARCHAR storage requirements.
+- Authentication now decodes base64-encoded password hashes before bcrypt verification.
+
+### Troubleshooting Notes
+- Ensure the Snowflake `users` table `password_hash` column is set to `VARCHAR` type.
+- Verify that bcrypt and base64 encoding modules are correctly imported to avoid runtime errors during registration and authentication.

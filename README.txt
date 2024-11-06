@@ -83,3 +83,9 @@ Handles sensitive user data (like email addresses and hashed passwords) through 
 
 Effort Tracking:
 Recorded on a 1-10 scale with 0.5 increments to track intensity.
+
+Changelog
+Version 1.2
+- User Registration: Users can now create accounts directly from the app.
+- Secure Password Storage: Passwords are hashed and stored using base64 encoding, ensuring compatibility with Snowflake's VARCHAR type.
+- Enhanced Authentication: Decodes passwords from base64 to verify credentials securely.

@@ -56,6 +56,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 from snowflake.connector import connect
 import bcrypt
+import base64
 import smtplib
 from email.mime.text import MIMEText
 
@@ -80,39 +81,48 @@ def connect_to_snowflake():
 # Register a new user with hashed password
 def register_user(username, email, password):
     """
-    Registers a new user by storing a username, email, and hashed password in the database.
+    Registers a new user by storing a username, email, and base64-encoded hashed password in the database.
     
     :param username: Unique identifier for the user.
     :param email: User's email address for login and recovery.
-    :param password: Raw password which is hashed before storing.
+    :param password: Raw password which is hashed and base64-encoded before storing.
     :return: None
     Error Handling: Checks for duplicate entries and secure password hashing.
+    Note: Password hash is base64-encoded for compatibility with Snowflake VARCHAR storage.
     """
+    # Hash the password
     hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    # Convert binary hash to base64-encoded string for VARCHAR storage
+    hashed_pw_str = base64.b64encode(hashed_pw).decode('utf-8')
+    
+    # Store in Snowflake as VARCHAR
     with connect_to_snowflake() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO users (username, email, password_hash) 
             VALUES (%s, %s, %s)
-        """, (username, email, hashed_pw))
+        """, (username, email, hashed_pw_str))
 
 # Authenticate user by verifying hashed password in database
 def authenticate(username, password):
     """
-    Authenticates a user by checking their hashed password in the database.
+    Authenticates a user by checking their base64-encoded hashed password in the database.
     
     :param username: Username for login.
     :param password: Plaintext password to verify against stored hash.
     :return: Boolean indicating whether authentication is successful.
     Error Handling: Handles cases of user not found and mismatched passwords.
+    Note: Password hash is decoded from base64 back to binary before verification.
     """
     with connect_to_snowflake() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT password_hash FROM users WHERE username = %s", (username,))
         result = cursor.fetchone()
         if result:
-            stored_hash = result[0]
-            return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+            # Decode the base64 stored hash back to binary
+            stored_hash = base64.b64decode(result[0])
+            return bcrypt.checkpw(password.encode('utf-8'), stored_hash)
     return False
 
 # Function to send a password recovery email
