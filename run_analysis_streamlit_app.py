@@ -411,7 +411,11 @@ if auth_action == "Login":
             # Data visualization
             st.subheader("Run Analysis")
             with connect_to_snowflake() as conn:
-                query = f"SELECT run_type, distance, run_time, `Stamina Run (minutes)` FROM run_data WHERE user_id = (SELECT user_id FROM users WHERE username = '{input_username}')"
+                query = f"""
+                SELECT run_type, distance, run_time, "Stamina Run (minutes)" 
+                FROM run_data 
+                WHERE user_id = (SELECT user_id FROM users WHERE username = '{input_username}')
+                """
                 df = pd.read_sql(query, conn)
 
             # Parse `Stamina Run (minutes)` column if it exists
