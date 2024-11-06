@@ -1,10 +1,7 @@
 """
-Run Analysis Streamlit App
-Version: 1.3
-
-Updates:
-- Added default return values in `get_user_schedule_progress` to handle cases where user data is unavailable.
-- Enhanced error handling to provide user feedback upon database issues.
+Run Analysis App v1.3
+This version introduces a weekly running schedule display with scorecards for Endurance, Stamina, and Speed.
+Users can view next week's goals and compare them with the current week's performance.
 """
 
 
@@ -207,6 +204,47 @@ def get_next_week_goals(current_week):
         }
     return None
 
+# This function displays the weekly running schedule goal and performance for the selected run type.
+def display_run_goal_and_performance(run_type, weekly_schedule):
+    """
+    Displays the goal and performance metrics for the selected run type.
+    
+    :param run_type: Selected run type (Endurance, Stamina, Speed).
+    :param weekly_schedule: Dictionary containing weekly goals and performance metrics.
+    :return: None
+    Error Handling: Displays default text if metrics are missing.
+    """
+    st.subheader(f"{run_type} Goal")
+    
+    # Display Goal Metrics
+    goal_data = weekly_schedule.get(run_type, {}).get("goal", {})
+    st.markdown("**Goal**")
+    for metric, value in goal_data.items():
+        st.write(f"{metric}: {value}")
+    
+    # Display Performance Metrics
+    performance_data = weekly_schedule.get(run_type, {}).get("performance", {})
+    st.markdown("**This Week's Performance**")
+    for metric, value in performance_data.items():
+        st.write(f"{metric}: {value}")
+
+# This function displays the weekly running schedule section with a toggle for Endurance, Stamina, and Speed.
+def weekly_schedule_view(weekly_schedule):
+    """
+    Displays the weekly running schedule with options to view goals and performance by run type.
+    
+    :param weekly_schedule: Dictionary containing goals and current performance data for each run type.
+    :return: None
+    Error Handling: Handles missing or incomplete data gracefully.
+    """
+    st.header("Weekly Running Schedule")
+    
+    # Toggle menu for selecting Endurance, Stamina, or Speed
+    run_type = st.radio("Select Run Type", ("Endurance", "Stamina", "Speed"))
+    
+    # Display selected run type's goals and performance
+    display_run_goal_and_performance(run_type, weekly_schedule)
+
 # Streamlit UI
 st.title("Personal Running Analysis")
 
@@ -310,3 +348,24 @@ elif auth_action == "Sign Up":
             st.success("Account created successfully! Please log in.")
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
+# Main code to execute in the Streamlit app
+if __name__ == "__main__":
+    # Sample data for testing the view
+    weekly_schedule = {
+        "Endurance": {
+            "goal": {"Distance": "3.5 miles", "Pace": "11'44''", "BPM": 150},
+            "performance": {"Distance": "4 miles", "Pace": "10'44''", "BPM": 150}
+        },
+        "Stamina": {
+            "goal": {"Duration": "16'", "Distance": "1.67 miles", "Pace": "9'36''", "BPM": 180},
+            "performance": {"Duration": "17'", "Distance": "1.7 miles", "Pace": "9'20''", "BPM": 178}
+        },
+        "Speed": {
+            "goal": {"Interval Time": "1:56", "Intervals": 5},
+            "performance": {"Interval Time": "1:54", "Intervals": 6}
+        }
+    }
+    
+    # Display the weekly schedule view
+    weekly_schedule_view(weekly_schedule)
