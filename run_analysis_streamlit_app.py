@@ -20,7 +20,7 @@ from email.mime.text import MIMEText
 
 def get_engine():
     return create_engine(
-        f"snowflake://{st.secrets['snowflake']['user']}:{st.secrets['snowflake']['password']}@{st.secrets['snowflake']['account']}/{st.secrets['snowflake']['database']}/{st.secrets['snowflake']['schema']}?warehouse={st.secrets['snowflake']['warehouse']}&role={st.secrets['snowflake']['role']}"
+        f"snowflake://{st.secrets['SNOWFLAKE']['USER']}:{st.secrets['SNOWFLAKE']['PASSWORD']}@{st.secrets['SNOWFLAKE']['ACCOUNT']}/{st.secrets['SNOWFLAKE']['DATABASE']}/{st.secrets['SNOWFLAKE']['SCHEMA']}?warehouse={st.secrets['SNOWFLAKE']['WAREHOUSE']}&role={st.secrets['SNOWFLAKE']['ROLE']}"
     )
         
 # Register a new user with hashed password
