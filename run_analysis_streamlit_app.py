@@ -1,51 +1,10 @@
 """
 Run Analysis Streamlit App
+Version: 1.3
 
-Version: 1.2
-
-This version of the Run Analysis Streamlit App provides the following features:
-
-1. Multi-user Authentication:
-   - Allows users to register with a unique username, email, and securely hashed password.
-   - Users can log in and access personal data only after successful authentication.
-   - Includes email recovery functionality for forgotten passwords, using an SMTP email service.
-
-2. Secure Credential Handling:
-   - Uses environment variables to securely manage sensitive credentials for Snowflake and SMTP email integration.
-   - Passwords are securely hashed and stored in the database to ensure confidentiality.
-
-3. User-specific Weekly Running Schedule:
-   - Displays an individualized weekly running schedule for each user with goals for endurance, stamina, and speed.
-   - Schedules are incremental and automatically adjust based on user performance data submitted each week.
-   - The initial schedule is set to start at Week 1 for new users with no prior data.
-
-4. Run Data Entry and Logging:
-   - Provides a form for users to enter running data collected using the Nike Run Club app.
-   - Run data fields include distance, average pace, total time, cadence, perceived effort (scale 1 to 10, with increments of 0.5), location type, music BPM, and breathing tempo.
-   - Data entry forms adapt to each run type (endurance, stamina, or speed) and allow users to enter precise metrics.
-   - Submitted data automatically updates the weekly schedule, progressing the user’s training goals based on their entries.
-
-5. Real-time Progress Tracking:
-   - Tracks weekly goals for each run type (endurance, stamina, speed) based on the user’s input and schedule progress.
-   - Includes logic to increment the user’s training schedule if submitted data meets or exceeds the weekly goal for any category.
-
-6. Data Visualization:
-   - Retrieves and visualizes historical run data for each user, plotting separate graphs for endurance, stamina, and speed.
-   - Provides users with insights into their run progress over time for each training category.
-
-7. Suggested Goals for Next Week:
-   - Based on current progress, provides suggested goals for the following week’s training in endurance, stamina, and speed.
-   - Weekly goals are customized and displayed according to the user’s recent data submissions and incremental schedule.
-
-8. Snowflake Database Integration:
-   - Uses Snowflake for secure data storage, including user information, run logs, and individual progress schedules.
-   - All SQL queries and database interactions are executed with exception handling to ensure reliability and data integrity.
-
-Recent Improvements in v1.2:
-   - Consolidated Snowflake and email configuration settings for streamlined deployment on Streamlit Cloud.
-   - Simplified connection setup by removing local testing conditions, optimizing for deployment.
-   - Code structure improved by defining streamlined connection and email functions for more organized flow.
-   - Addressed minor syntax errors and improved readability and consistency across functions.
+Updates:
+- Added default return values in `get_user_schedule_progress` to handle cases where user data is unavailable.
+- Enhanced error handling to provide user feedback upon database issues.
 """
 
 
@@ -151,29 +110,49 @@ schedule_data = {
 }
 schedule_df = pd.DataFrame(schedule_data)
 
-# Function to get the user's current week for each category
+# Retrieves the user's schedule progress for endurance, stamina, and speed
 def get_user_schedule_progress(username):
     """
-    Retrieves the current week for endurance, stamina, and speed schedules from the database.
-    :param username: Username to look up.
-    :return: Dictionary containing current week numbers for endurance, stamina, and speed.
-    Error Handling: Defaults to week 1 if no prior data.
+    Retrieves the user's schedule progress for endurance, stamina, and speed.
+
+    :param username: Unique identifier for the user.
+    :return: Dictionary with progress data or default values if no data exists.
+    Error Handling: Returns default values and displays an error message if 
+                    database access fails.
     """
-    with connect_to_snowflake() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT endurance_week, stamina_week, speed_week FROM user_schedule_progress
-            WHERE username = %s
-        """, (username,))
-        result = cursor.fetchone()
-        if result:
-            return {
-                "endurance_week": result[0],
-                "stamina_week": result[1],
-                "speed_week": result[2]
-            }
-        else:
-            return {"endurance_week": 1, "stamina_week": 1, "speed_week": 1}
+    try:
+        with connect_to_snowflake() as conn:
+            cursor = conn.cursor()
+            # Query to check if user has any run data
+            cursor.execute("""
+                SELECT AVG(distance) AS endurance_week,
+                       AVG(cadence) AS stamina_week,
+                       AVG(run_time) AS speed_week
+                FROM run_data
+                WHERE user_id = (SELECT user_id FROM users WHERE username = %s)
+            """, (username,))
+            result = cursor.fetchone()
+            
+            # Return results if found; otherwise, default values
+            if result and any(result):
+                return {
+                    "endurance_week": result[0] if result[0] is not None else 0,
+                    "stamina_week": result[1] if result[1] is not None else 0,
+                    "speed_week": result[2] if result[2] is not None else 0
+                }
+            else:
+                return {
+                    "endurance_week": 0,
+                    "stamina_week": 0,
+                    "speed_week": 0
+                }
+    except ProgrammingError as e:
+        st.error("Error fetching user schedule progress. Please contact support.")
+        return {
+            "endurance_week": 0,
+            "stamina_week": 0,
+            "speed_week": 0
+        }
 
 # Function to update user's schedule week based on progress
 def update_user_schedule_progress(username, category):
