@@ -60,25 +60,23 @@ import smtplib
 from email.mime.text import MIMEText
 
 
-# Establishes connection to the Snowflake database with Streamlit secrets
+# Connect to Snowflake using st.secrets for secure credentials
 def connect_to_snowflake():
     """
-    Establishes a connection to the Snowflake database using Streamlit secrets.
-    
+    Establishes a connection to the Snowflake database using credentials from st.secrets.
+
     :return: Snowflake connection object.
-    Error Handling: Raises exceptions for connection issues, handled by calling functions.
     """
     return connect(
-        account=st.secrets["SNOWFLAKE_ACCOUNT"],
-        user=st.secrets["SNOWFLAKE_USER"],
-        password=st.secrets["SNOWFLAKE_PASSWORD"],
-        database=st.secrets["SNOWFLAKE_DATABASE"],
-        schema=st.secrets["SNOWFLAKE_SCHEMA"],
-        warehouse=st.secrets["SNOWFLAKE_WAREHOUSE"],
-        role=st.secrets["SNOWFLAKE_ROLE"]
+        account=st.secrets["SNOWFLAKE"]["ACCOUNT"],
+        user=st.secrets["SNOWFLAKE"]["USER"],
+        password=st.secrets["SNOWFLAKE"]["PASSWORD"],
+        database=st.secrets["SNOWFLAKE"]["DATABASE"],
+        schema=st.secrets["SNOWFLAKE"]["SCHEMA"],
+        warehouse=st.secrets["SNOWFLAKE"]["WAREHOUSE"],
+        role=st.secrets["SNOWFLAKE"]["ROLE"]
     )
-
-
+        
 # Register a new user with hashed password
 def register_user(username, email, password):
     """
@@ -117,7 +115,7 @@ def authenticate(username, password):
             return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
     return False
 
-# Sends recovery email with password reset link to the user
+# Function to send a password recovery email
 def send_recovery_email(email, username, recovery_link):
     """
     Sends an email to the user with their username and a password reset link for recovery.
@@ -125,20 +123,14 @@ def send_recovery_email(email, username, recovery_link):
     :param email: The registered email address of the user.
     :param username: The user's username for personalization.
     :param recovery_link: The link for password recovery.
-    :return: None
     """
-    EMAIL_USER = st.secrets["EMAIL_USER"]
-    EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
-    SMTP_SERVER = st.secrets["SMTP_SERVER"]
-    SMTP_PORT = st.secrets["SMTP_PORT"]
-
     msg = MIMEText(f"Hello {username},\n\nClick here to reset your password: {recovery_link}")
     msg["Subject"] = "Password Recovery"
-    msg["From"] = EMAIL_USER
+    msg["From"] = st.secrets["EMAIL"]["FROM_EMAIL"]
     msg["To"] = email
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.login(EMAIL_USER, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_USER, email, msg.as_string())
+    with smtplib.SMTP(st.secrets["EMAIL"]["SMTP_SERVER"], st.secrets["EMAIL"]["SMTP_PORT"]) as server:
+        server.login(st.secrets["EMAIL"]["USER"], st.secrets["EMAIL"]["PASSWORD"])
+        server.sendmail(st.secrets["EMAIL"]["USER"], email, msg.as_string())
 
 # Weekly running schedule table
 schedule_data = {
