@@ -255,3 +255,36 @@ This UI/UX overhaul aligns well with providing a streamlined, user-friendly expe
 3. **Feature Development**: Implement user customization for goals, real-time chart updates, and the bottom navigation bar.
 
 This UI/UX revamp will enhance usability, making key metrics more accessible while keeping navigation intuitive and maintaining mobile-friendliness.
+
+
+
+
+## Current Task: Debugging and Query Update for Snowflake Compatibility
+
+### Error Summary
+- **Issue**: SQL compilation error due to `invalid identifier '"Stamina Run (minutes)"'`.
+- **Cause**: The syntax issue likely arises from special characters and spaces in the column name, which are causing problems in SQLAlchemy queries.
+
+### Planned Solution
+1. **Rename Column in Snowflake** (if feasible): 
+   - Change `"Stamina Run (minutes)"` to a simpler format like `stamina_run_minutes` to avoid special character conflicts.
+
+2. **Update Query Syntax**:
+   - If renaming isn’t an option, modify the SQLAlchemy `text` query to use consistent double quotes for compatibility.
+
+### Query Code to Revisit
+- **Section of Code to Adjust**:
+  ```python
+  query = text("""
+      SELECT run_type, distance, run_time, "Stamina Run (minutes)"
+      FROM run_data
+      WHERE user_id = (SELECT user_id FROM users WHERE username = :username)
+  """)
+  ```
+
+**Objective**: Ensure compatibility by renaming the column or confirming proper SQL syntax.
+
+**Next Steps**:
+- Confirm the column rename or implement quote-based compatibility adjustments in Snowflake.
+- Test the updated query syntax in the Snowflake environment to ensure proper functionality.
+- Verify that SQLAlchemy reads the modified schema and resolves the error without further issues.
