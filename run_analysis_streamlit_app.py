@@ -218,86 +218,106 @@ def get_next_week_goals(current_week):
         }
     return None
 
-# Streamlit UI if deployed to streamlit
+# Streamlit UI
 st.title("Personal Running Analysis")
 
-# Login form
-with st.form("login_form"):
-    st.write("Please login to continue")
-    input_username = st.text_input("Username")
-    input_password = st.text_input("Password", type="password")
-    submit_button = st.form_submit_button("Login")
+# Toggle between Login and Sign Up views
+auth_action = st.radio("Choose an action", ["Login", "Sign Up"])
 
-if submit_button:
-    if authenticate(input_username, input_password):
-        st.success("Login successful!")
+if auth_action == "Login":
+    # Login form
+    with st.form("login_form"):
+        st.write("Please login to continue")
+        input_username = st.text_input("Username")
+        input_password = st.text_input("Password", type="password")
+        submit_button = st.form_submit_button("Login")
+    
+    if submit_button:
+        if authenticate(input_username, input_password):
+            st.success("Login successful!")
 
-        # Display Running Schedule Table
-        st.subheader("Weekly Running Schedule")
-        st.write("This table outlines your planned schedule for endurance, stamina, and speed goals:")
-        st.dataframe(schedule_df)
+            # Display Running Schedule Table
+            st.subheader("Weekly Running Schedule")
+            st.write("This table outlines your planned schedule for endurance, stamina, and speed goals:")
+            st.dataframe(schedule_df)
 
-        # Data submission section
-        st.subheader("Enter New Run Data")
-        st.write("Use the Nike Run Club app to gather your data, then enter the details below.")
+            # Data submission section
+            st.subheader("Enter New Run Data")
+            st.write("Use the Nike Run Club app to gather your data, then enter the details below.")
 
-        # Dropdown to select the run type
-        run_type = st.selectbox("Run Type", ["Endurance", "Stamina", "Speed"])
+            # Dropdown to select the run type
+            run_type = st.selectbox("Run Type", ["Endurance", "Stamina", "Speed"])
 
-        # Input fields for run details
-        distance = st.number_input("Distance (miles)", min_value=0.0, step=0.01)
-        avg_pace = st.text_input("Average Pace (e.g., 7'38\")")
-        run_time = st.text_input("Time (e.g., 01:57)")
-        cadence = st.number_input("Cadence", min_value=0, step=1)
-        effort = st.slider("Effort (1 to 10)", min_value=1.0, max_value=10.0, step=0.5)
-        location = st.selectbox("Location", ["Street", "Track", "Trail"])
-        music_bpm = st.selectbox("Music BPM", list(range(0, 205, 5)))  # Options in increments of 5
-        breathing_tempo = st.text_input("Breathing Tempo (e.g., 2:2 for inhale 2 steps, exhale 2 steps)")
+            # Input fields for run details
+            distance = st.number_input("Distance (miles)", min_value=0.0, step=0.01)
+            avg_pace = st.text_input("Average Pace (e.g., 7'38\")")
+            run_time = st.text_input("Time (e.g., 01:57)")
+            cadence = st.number_input("Cadence", min_value=0, step=1)
+            effort = st.slider("Effort (1 to 10)", min_value=1.0, max_value=10.0, step=0.5)
+            location = st.selectbox("Location", ["Street", "Track", "Trail"])
+            music_bpm = st.selectbox("Music BPM", list(range(0, 205, 5)))  # Options in increments of 5
+            breathing_tempo = st.text_input("Breathing Tempo (e.g., 2:2 for inhale 2 steps, exhale 2 steps)")
 
-        # Submission button
-        submit_data_button = st.button("Submit Data")
+            # Submission button
+            submit_data_button = st.button("Submit Data")
 
-        if submit_data_button:
-            # Collect data to update the schedule
-            run_data = {
-                "endurance": distance if run_type == "Endurance" else 0,
-                "stamina": run_time if run_type == "Stamina" else 0,
-                "speed": cadence if run_type == "Speed" else 0
+            if submit_data_button:
+                # Collect data to update the schedule
+                run_data = {
+                    "endurance": distance if run_type == "Endurance" else 0,
+                    "stamina": run_time if run_type == "Stamina" else 0,
+                    "speed": cadence if run_type == "Speed" else 0
+                }
+                check_and_update_schedule(input_username, run_data)
+                st.success("Run data submitted and schedule updated successfully!")
+
+            # Data visualization
+            st.subheader("Run Analysis")
+            with connect_to_snowflake() as conn:
+                query = f"SELECT run_type, distance, time FROM run_data WHERE username = '{input_username}'"
+                df = pd.read_sql(query, conn)
+
+            if not df.empty:
+                # Plot each run type
+                for run in ["Endurance", "Stamina", "Speed"]:
+                    run_data = df[df['run_type'] == run]
+                    if not run_data.empty:
+                        fig, ax = plt.subplots()
+                        ax.plot(run_data["distance"], run_data["time"], marker='o')
+                        ax.set_title(f"{run} Run Analysis")
+                        ax.set_xlabel("Distance (km)")
+                        ax.set_ylabel("Time (minutes)")
+                        st.pyplot(fig)
+            else:
+                st.write("No data available for this user.")
+
+            # Suggested goals for next week
+            st.subheader("Suggested Goals for Next Week")
+            user_weeks = get_user_schedule_progress(input_username)
+            next_week_goals = {
+                "Endurance": get_next_week_goals(user_weeks['endurance_week']),
+                "Stamina": get_next_week_goals(user_weeks['stamina_week']),
+                "Speed": get_next_week_goals(user_weeks['speed_week'])
             }
-            check_and_update_schedule(input_username, run_data)
-            st.success("Run data submitted and schedule updated successfully!")
-
-        # Data visualization
-        st.subheader("Run Analysis")
-        with connect_to_snowflake() as conn:
-            query = f"SELECT run_type, distance, time FROM run_data WHERE username = '{input_username}'"
-            df = pd.read_sql(query, conn)
-
-        if not df.empty:
-            # Plot each run type
-            for run in ["Endurance", "Stamina", "Speed"]:
-                run_data = df[df['run_type'] == run]
-                if not run_data.empty:
-                    fig, ax = plt.subplots()
-                    ax.plot(run_data["distance"], run_data["time"], marker='o')
-                    ax.set_title(f"{run} Run Analysis")
-                    ax.set_xlabel("Distance (km)")
-                    ax.set_ylabel("Time (minutes)")
-                    st.pyplot(fig)
+            if any(next_week_goals.values()):
+                st.write("Next week goals:", next_week_goals)
+            else:
+                st.write("No goals available for next week.")
         else:
-            st.write("No data available for this user.")
+            st.error("Invalid credentials. Please try again.")
 
-        # Suggested goals for next week
-        st.subheader("Suggested Goals for Next Week")
-        user_weeks = get_user_schedule_progress(input_username)
-        next_week_goals = {
-            "Endurance": get_next_week_goals(user_weeks['endurance_week']),
-            "Stamina": get_next_week_goals(user_weeks['stamina_week']),
-            "Speed": get_next_week_goals(user_weeks['speed_week'])
-        }
-        if any(next_week_goals.values()):
-            st.write("Next week goals:", next_week_goals)
-        else:
-            st.write("No goals available for next week.")
-    else:
-        st.error("Invalid credentials. Please try again.")
+elif auth_action == "Sign Up":
+    # Sign Up form
+    with st.form("signup_form"):
+        st.write("Create a new account")
+        new_username = st.text_input("New Username")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("Password", type="password")
+        signup_button = st.form_submit_button("Sign Up")
+    
+    if signup_button:
+        try:
+            register_user(new_username, new_email, new_password)
+            st.success("Account created successfully! Please log in.")
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
