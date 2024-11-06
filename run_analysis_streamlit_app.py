@@ -18,10 +18,9 @@ import base64
 import smtplib
 from email.mime.text import MIMEText
 
-# Initialize SQLAlchemy engine
 def get_engine():
     return create_engine(
-        f"snowflake://{st.secrets['SNOWFLAKE_USER']}:{st.secrets['SNOWFLAKE_PASSWORD']}@{st.secrets['SNOWFLAKE_ACCOUNT']}/{st.secrets['SNOWFLAKE_DATABASE']}/{st.secrets['SNOWFLAKE_SCHEMA']}?warehouse={st.secrets['SNOWFLAKE_WAREHOUSE']}&role={st.secrets['SNOWFLAKE_ROLE']}"
+        f"snowflake://{st.secrets['snowflake']['user']}:{st.secrets['snowflake']['password']}@{st.secrets['snowflake']['account']}/{st.secrets['snowflake']['database']}/{st.secrets['snowflake']['schema']}?warehouse={st.secrets['snowflake']['warehouse']}&role={st.secrets['snowflake']['role']}"
     )
         
 # Register a new user with hashed password

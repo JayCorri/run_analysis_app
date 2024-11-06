@@ -175,3 +175,83 @@ This approach keeps the codebase organized and makes switching between local tes
 ### Troubleshooting Notes
 - Ensure the Snowflake `users` table `password_hash` column is set to `VARCHAR` type.
 - Verify that bcrypt and base64 encoding modules are correctly imported to avoid runtime errors during registration and authentication.
+
+# UX/UI Roadmap
+ - After the user logs in they should be presented with the number of miles they've ran over the past week with a navigation bar to change the selector from W M Y All (week, month, year, all). Then their performance goals for next week (we should add they can manually override the performance goals to their preference with a reset button to return to app generated performance goal if that sounds doable). Also, the example data shown at login should have some indication it is an example and disappear after login. The login form should disappear after login and put give them an intial in the top left corner where they can logout bringing them back to the login form with the sample Performance Goal.
+After login the user should not be presented with the entire run schedule. Instead the Run Analysis should be the first thing they see, the login and sample performance goal should disappear. The Section Run Analysis should be titled performance goals. and show the three run type scorecards in 1 row, 3 columns. Then beneath is the chart for the week where they can change it W M Y All. Beneath that, at the bottom is the data entry. There should be a menu bar that hovers at the bottom where they can select an icon of a running stick figure to navigate to their performance goals, an icon of a bar chart where they navigate to view their metrics and activity logs, a plus button where they navigate to log a run. I'm not sure how this aligns with our previous UI/UX idea
+This UI/UX overhaul aligns well with providing a streamlined, user-friendly experience that centers on actionable insights and accessibility. Here’s a structured breakdown of your new UI/UX vision and how we can implement it within our existing structure, along with some enhancements based on feasibility.
+
+---
+
+### 1. **Login & Sample Data Experience**
+
+   - **Login Form**: Once the user logs in successfully:
+     - Hide the login form.
+     - Display the user’s initials in the top left, which acts as a logout button to bring them back to the login form. 
+     - Display sample performance goals with a label indicating they are sample data until the user logs in.
+   - **Sample Data Visibility**: This data will:
+     - Disappear once the user logs in.
+     - Be replaced by real user performance data and goals.
+
+### 2. **Performance Goals Display**
+
+   - **Initial Display After Login**: Post-login, the user should see a streamlined view that focuses on their performance goals.
+     - **Main Performance Goal Metric**: Show cumulative miles over the past week prominently at the top.
+     - **Goal Scorecards**:
+       - Rename the “Run Analysis” section to “Performance Goals.”
+       - Display the three run type scorecards (Endurance, Stamina, Speed) in one row with three columns.
+       - Each scorecard provides the weekly performance target and displays progress.
+     - **User-Controlled Goal Customization**:
+       - Users can manually adjust goals and save them.
+       - Provide a “Reset” button to return to the app-generated default goals.
+
+### 3. **Weekly Chart and Time Selector Navigation**
+
+   - **Weekly Chart View**:
+     - Place a time selector bar at the top of the chart area, allowing users to toggle between W, M, Y, and All to view their performance data by week, month, year, or all-time.
+     - **Chart Display**:
+       - Plot the selected time range (weekly, monthly, yearly, or cumulative) as a graph beneath the performance scorecards.
+       - This chart provides a quick visual of distance and progress over time.
+   
+### 4. **Data Entry for Logging Runs**
+
+   - **Data Entry Section**: Position the data entry section for logging new runs at the bottom of the display.
+   - **Bottom Navigation Menu**:
+     - Introduce a fixed bottom navigation bar with icons to quickly navigate between sections:
+       - **Performance Goals**: An icon of a running stick figure to show goals.
+       - **Metrics and Activity Logs**: A bar chart icon for detailed metrics and activity logs.
+       - **Log Run**: A plus icon for adding new runs.
+
+### 5. **UI Flow Summary**
+
+   - **Upon Login**:
+     - Login form disappears, and the user’s initials appear in the top-left corner as a logout option.
+     - Sample data clears and is replaced by the user’s actual performance goals and past week’s mileage.
+   - **After Login - Main View**:
+     - **Top Section**: Weekly mileage, with navigation to switch between W, M, Y, and All views.
+     - **Performance Goals Section**: Three scorecards showing weekly goals for Endurance, Stamina, and Speed.
+     - **Chart Section**: Time-series chart for selected duration.
+     - **Data Entry Section**: At the bottom, with the hover menu for easy navigation.
+
+---
+
+### Implementation Notes
+
+1. **Interactive Chart Navigation**: We’ll implement the time-selector bar and have the data and chart update based on the user’s selection.
+2. **User Goal Customization**: Add form fields to allow users to set custom goals, and store these settings for future sessions.
+3. **Bottom Navigation**: This floating menu will ensure users can seamlessly switch views without cluttering the main display.
+4. **Performance Enhancements**:
+   - Streamlining data queries for performance goals and chart metrics based on time selector (W, M, Y, All).
+   - Enabling caching of frequent queries (e.g., weekly mileage) for quick load times.
+5. **Accessibility & Responsiveness**:
+   - The layout will adjust based on screen size (e.g., one row on desktop, cascading rows on mobile).
+
+---
+
+### Next Steps
+
+1. **Mockup Confirmation**: We can develop a quick mockup based on this structure for visual confirmation.
+2. **Refactoring Codebase**: Organize the current layout into distinct, modular sections that align with the new UI flow.
+3. **Feature Development**: Implement user customization for goals, real-time chart updates, and the bottom navigation bar.
+
+This UI/UX revamp will enhance usability, making key metrics more accessible while keeping navigation intuitive and maintaining mobile-friendliness.
