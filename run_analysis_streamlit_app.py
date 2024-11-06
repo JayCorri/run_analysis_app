@@ -1,37 +1,27 @@
 """
-Run Analysis App v1.3
-This version introduces a weekly running schedule display with scorecards for Endurance, Stamina, and Speed.
-Users can view next week's goals and compare them with the current week's performance.
+Run Analysis Streamlit App
+Version: 1.3
+
+Description:
+This application tracks a user's run metrics and sets personalized weekly goals. Supports three run types (Endurance, Stamina, Speed) with unique metrics for each. 
+Updated to include flexible fields for varying metrics (rep_count, rep_distance, rep_time) based on run type.
 """
 
 
 
-import os
+from sqlalchemy import create_engine, text
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
-from snowflake.connector import connect
 import bcrypt
 import base64
 import smtplib
 from email.mime.text import MIMEText
 
-
-# Connect to Snowflake using st.secrets for secure credentials
-def connect_to_snowflake():
-    """
-    Establishes a connection to the Snowflake database using credentials from st.secrets.
-
-    :return: Snowflake connection object.
-    """
-    return connect(
-        account=st.secrets["SNOWFLAKE"]["ACCOUNT"],
-        user=st.secrets["SNOWFLAKE"]["USER"],
-        password=st.secrets["SNOWFLAKE"]["PASSWORD"],
-        database=st.secrets["SNOWFLAKE"]["DATABASE"],
-        schema=st.secrets["SNOWFLAKE"]["SCHEMA"],
-        warehouse=st.secrets["SNOWFLAKE"]["WAREHOUSE"],
-        role=st.secrets["SNOWFLAKE"]["ROLE"]
+# Initialize SQLAlchemy engine
+def get_engine():
+    return create_engine(
+        f"snowflake://{st.secrets['SNOWFLAKE_USER']}:{st.secrets['SNOWFLAKE_PASSWORD']}@{st.secrets['SNOWFLAKE_ACCOUNT']}/{st.secrets['SNOWFLAKE_DATABASE']}/{st.secrets['SNOWFLAKE_SCHEMA']}?warehouse={st.secrets['SNOWFLAKE_WAREHOUSE']}&role={st.secrets['SNOWFLAKE_ROLE']}"
     )
         
 # Register a new user with hashed password
@@ -52,13 +42,16 @@ def register_user(username, email, password):
     # Convert binary hash to base64-encoded string for VARCHAR storage
     hashed_pw_str = base64.b64encode(hashed_pw).decode('utf-8')
     
-    # Store in Snowflake as VARCHAR
-    with connect_to_snowflake() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO users (username, email, password_hash) 
-            VALUES (%s, %s, %s)
-        """, (username, email, hashed_pw_str))
+    # Store in Snowflake as VARCHAR using SQLAlchemy engine
+    engine = get_engine()
+    with engine.connect() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO users (username, email, password_hash) 
+                VALUES (:username, :email, :password_hash)
+            """),
+            {"username": username, "email": email, "password_hash": hashed_pw_str}
+        )
 
 # Authenticate user by verifying hashed password in database
 def authenticate(username, password):
@@ -71,14 +64,17 @@ def authenticate(username, password):
     Error Handling: Handles cases of user not found and mismatched passwords.
     Note: Password hash is decoded from base64 back to binary before verification.
     """
-    with connect_to_snowflake() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT password_hash FROM users WHERE username = %s", (username,))
-        result = cursor.fetchone()
+    engine = get_engine()
+    query = text("SELECT password_hash FROM users WHERE username = :username")
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {"username": username}).fetchone()
+        
         if result:
             # Decode the base64 stored hash back to binary
             stored_hash = base64.b64decode(result[0])
             return bcrypt.checkpw(password.encode('utf-8'), stored_hash)
+    
     return False
 
 # Function to send a password recovery email
@@ -98,13 +94,17 @@ def send_recovery_email(email, username, recovery_link):
         server.login(st.secrets["EMAIL"]["USER"], st.secrets["EMAIL"]["PASSWORD"])
         server.sendmail(st.secrets["EMAIL"]["USER"], email, msg.as_string())
 
-# Weekly running schedule table
+# Updated weekly running schedule table
 schedule_data = {
     "Week": list(range(1, 35)),
     "Endurance Distance (miles)": [3, 3.25, 3.5, 3.75, 4, 4.25, 4.5, 4.75, 5, 5.25, 5.5, 5.75, 6, 6.25, 6.5, 6.75, 7, 7.25, 7.5, 7.75, 8, 8.25, 8.5, 8.75, 9, 9.25, 9.5, 9.75, 10, 10, 10, 10, 10, 10],
-    "Stamina Run (minutes)": [15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, "2x12", "2x12", "2x14", "2x14", "2x14", "2x16", "2x16", "2x16", "2x18", "2x18", "2x18", "2x20", "2x20", "2x20", "3x14", "3x14", "3x14", "3x17", "3x17", "3x17", "3x20", "3x20", "3x20"],
-    "Speed Intervals": [4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+    "Stamina Reps": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    "Stamina Time per Rep (minutes)": [15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 12, 12, 14, 14, 14, 16, 16, 16, 18, 18, 18, 20, 20, 20, 14, 14, 14, 17, 17, 17, 20, 20, 20],
+    "Speed Reps": [4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+    "Speed Distance per Rep (miles)": [0.25] * 34  # Each speed interval distance is 0.25 miles
 }
+
+# Convert to DataFrame
 schedule_df = pd.DataFrame(schedule_data)
 
 # Retrieves the user's schedule progress for endurance, stamina, and speed
@@ -118,17 +118,17 @@ def get_user_schedule_progress(username):
                     database access fails.
     """
     try:
-        with connect_to_snowflake() as conn:
-            cursor = conn.cursor()
+        engine = get_engine()
+        with engine.connect() as conn:
             # Query to check if user has any run data
-            cursor.execute("""
+            query = text("""
                 SELECT AVG(distance) AS endurance_week,
                        AVG(cadence) AS stamina_week,
                        AVG(run_time) AS speed_week
                 FROM run_data
-                WHERE user_id = (SELECT user_id FROM users WHERE username = %s)
-            """, (username,))
-            result = cursor.fetchone()
+                WHERE user_id = (SELECT user_id FROM users WHERE username = :username)
+            """)
+            result = conn.execute(query, {"username": username}).fetchone()
             
             # Return results if found; otherwise, default values
             if result and any(result):
@@ -143,7 +143,7 @@ def get_user_schedule_progress(username):
                     "stamina_week": 0,
                     "speed_week": 0
                 }
-    except ProgrammingError as e:
+    except Exception as e:
         st.error("Error fetching user schedule progress. Please contact support.")
         return {
             "endurance_week": 0,
@@ -155,18 +155,30 @@ def get_user_schedule_progress(username):
 def update_user_schedule_progress(username, category):
     """
     Increments the user's current week for a specific category if they have met the goal.
+
     :param username: Username of the user.
     :param category: Run category (endurance, stamina, or speed) to increment.
     :return: None
-    Error Handling: Updates database with new week.
+    Error Handling: Safely increments the specified category's week in the database.
     """
-    with connect_to_snowflake() as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            UPDATE user_schedule_progress
-            SET {category}_week = {category}_week + 1
-            WHERE username = %s
-        """, (username,))
+    engine = get_engine()
+    valid_categories = ["endurance", "stamina", "speed"]
+    
+    # Ensure the category is valid to prevent SQL injection
+    if category not in valid_categories:
+        raise ValueError("Invalid category. Must be 'endurance', 'stamina', or 'speed'.")
+
+    try:
+        with engine.connect() as conn:
+            query = text(f"""
+                UPDATE user_schedule_progress
+                SET {category}_week = {category}_week + 1
+                WHERE username = :username
+            """)
+            conn.execute(query, {"username": username})
+    except Exception as e:
+        st.error("Error updating user schedule progress. Please contact support.")
+
 
 # Function to check if user met weekly goals
 def check_and_update_schedule(username, run_data):
@@ -249,30 +261,31 @@ def weekly_schedule_view(weekly_schedule):
 def get_user_weekly_schedule(user_id, week_start_date):
     """
     Retrieves the user's weekly schedule progress for Endurance, Stamina, and Speed goals.
-    If no data exists, defaults to "Week 1" goals for an inexperienced runner.
+    If no data exists, defaults to "Week 1" goals from the pre-defined schedule.
 
     :param user_id: Unique identifier for the user.
     :param week_start_date: The start date of the week for the schedule.
     :return: Dictionary with weekly goals for endurance, stamina, and speed.
-    Error Handling: Returns default values (Week 1 goals) if no data is available.
+    Error Handling: Returns default values (Week 1 goals) from the schedule if no data is available.
     """
+    engine = get_engine()
+    
     try:
-        with connect_to_snowflake() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        with engine.connect() as conn:
+            query = text("""
                 SELECT 
                     endurance_goal_distance, 
                     endurance_goal_time,
-                    stamina_goal_sets, 
-                    stamina_goal_time_per_set,
-                    speed_goal_sets, 
-                    speed_goal_distance_per_set,
-                    speed_goal_time_per_set
+                    stamina_goal_reps, 
+                    stamina_goal_time_per_rep,
+                    speed_goal_reps, 
+                    speed_goal_distance_per_rep,
+                    speed_goal_time_per_rep
                 FROM run_data_schema.USER_SCHEDULE_PROGRESS
-                WHERE user_id = %s AND week_start_date = %s
-            """, (user_id, week_start_date))
-            result = cursor.fetchone()
-            
+                WHERE user_id = :user_id AND week_start_date = :week_start_date
+            """)
+            result = conn.execute(query, {"user_id": user_id, "week_start_date": week_start_date}).fetchone()
+
             if result:
                 # Return user's specific goals if data exists
                 return {
@@ -281,47 +294,51 @@ def get_user_weekly_schedule(user_id, week_start_date):
                         "Time Goal": result[1] or "N/A"
                     },
                     "Stamina": {
-                        "Sets": result[2] or 0,
-                        "Time per Set": result[3] or "N/A"
+                        "Reps": result[2] or 0,
+                        "Time per Rep": result[3] or "N/A"
                     },
                     "Speed": {
-                        "Sets": result[4] or 0,
-                        "Distance per Set": result[5] or 0,
-                        "Time per Set": result[6] or "N/A"
+                        "Reps": result[4] or 0,
+                        "Distance per Rep": result[5] or 0,
+                        "Time per Rep": result[6] or "N/A"
                     }
                 }
             else:
-                # Default Week 1 goals for an inexperienced runner
+                # Default to Week 1 goals from schedule_df if no user data found
+                week_1_data = schedule_df[schedule_df["Week"] == 1].iloc[0]
                 return {
                     "Endurance": {
-                        "Distance Goal": 2.0,             # 2 miles for endurance
-                        "Time Goal": "13'00\""           # 13 min/mile pace
+                        "Distance Goal": week_1_data["Endurance Distance (miles)"],
+                        "Time Goal": "N/A"
                     },
                     "Stamina": {
-                        "Sets": 2,                      # 2 sets for stamina
-                        "Time per Set": "12"            # 12 minutes per set
+                        "Reps": week_1_data["Stamina Reps"],
+                        "Time per Rep": week_1_data["Stamina Time per Rep (minutes)"]
                     },
                     "Speed": {
-                        "Sets": 4,                      # 4 intervals for speed
-                        "Distance per Set": 0.25,       # 0.25 miles per interval
-                        "Time per Set": "2'00\""        # 2 minutes per interval
+                        "Reps": week_1_data["Speed Reps"],
+                        "Distance per Rep": week_1_data["Speed Distance per Rep (miles)"],
+                        "Time per Rep": "2'00\""  # Update if there's a specific target time
                     }
                 }
-    except ProgrammingError as e:
+
+    except Exception as e:
         st.error("Error fetching weekly schedule. Please contact support.")
+        # Return Week 1 default schedule from schedule_df in case of error
+        week_1_data = schedule_df[schedule_df["Week"] == 1].iloc[0]
         return {
             "Endurance": {
-                "Distance Goal": 2.0,                    # Default to Week 1 goal if error
-                "Time Goal": "13'00\""
+                "Distance Goal": week_1_data["Endurance Distance (miles)"],
+                "Time Goal": "N/A"
             },
             "Stamina": {
-                "Sets": 2,
-                "Time per Set": "12"
+                "Reps": week_1_data["Stamina Reps"],
+                "Time per Rep": week_1_data["Stamina Time per Rep (minutes)"]
             },
             "Speed": {
-                "Sets": 4,
-                "Distance per Set": 0.25,
-                "Time per Set": "2'00\""
+                "Reps": week_1_data["Speed Reps"],
+                "Distance per Rep": week_1_data["Speed Distance per Rep (miles)"],
+                "Time per Rep": "2'00\""
             }
         }
 
@@ -354,6 +371,71 @@ def generate_default_weekly_goals():
             "music_bpm": 150         # Recommended music BPM
         }
     }
+
+# Function to fetch user run data based on run type
+def fetch_run_data(user_id, run_type):
+    """
+    Fetches a user's run data filtered by run type and displays relevant metrics.
+    
+    :param user_id: Unique identifier for the user.
+    :param run_type: Type of run - 'Endurance', 'Stamina', or 'Speed'.
+    :return: DataFrame containing the run data for the specified type.
+    """
+    with get_engine().connect() as conn:
+        if run_type == 'Endurance':
+            query = """
+                SELECT total_distance, avg_pace, music_bpm, run_date
+                FROM run_data
+                WHERE user_id = %s AND run_type = %s
+            """
+        else:
+            query = """
+                SELECT rep_count, rep_distance, rep_time, avg_pace, music_bpm, run_date
+                FROM run_data
+                WHERE user_id = %s AND run_type = %s
+            """
+        
+        return pd.read_sql(query, conn, params=(user_id, run_type))
+
+# Logs individual run data into the database
+def log_run_data(user_id, run_type, distance=None, avg_pace=None, cadence=None,
+                 effort=None, location=None, music_bpm=None, breathing_tempo=None,
+                 run_time=None, run_time_seconds=None, reps=None,
+                 rep_distance=None, rep_time=None):
+    """
+    Logs run data for a user based on various metrics, including distance, pace, and 
+    unique details for endurance, stamina, and speed runs.
+
+    :param user_id: Unique identifier for the user.
+    :param run_type: Type of run ('Endurance', 'Stamina', 'Speed').
+    :param distance: Total distance covered (miles).
+    :param avg_pace: Average pace as a string, e.g., 'minutes/mile'.
+    :param cadence: Steps per minute.
+    :param effort: Perceived effort on a scale of 1.0 to 10.0.
+    :param location: Location of the run (Street, Track, Trail).
+    :param music_bpm: Music beats per minute.
+    :param breathing_tempo: Steps per inhale/exhale pattern.
+    :param run_time: Duration of the run (optional).
+    :param run_time_seconds: Duration in seconds for logging.
+    :param reps: Number of repetitions or sets completed.
+    :param rep_distance: Distance per repetition, used for interval training.
+    :param rep_time: Time per repetition in seconds.
+    :return: None
+    Error Handling: Logs an error if the data logging fails.
+    """
+    try:
+        with get_engine().connect() as conn:
+            query = """
+                INSERT INTO run_data (user_id, run_type, distance, avg_pace, cadence, 
+                effort, location, music_bpm, breathing_tempo, run_time, run_time_seconds, 
+                reps, rep_distance, rep_time)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            conn.execute(query, (user_id, run_type, distance, avg_pace, cadence, effort,
+                                 location, music_bpm, breathing_tempo, run_time, 
+                                 run_time_seconds, reps, rep_distance, rep_time))
+    except Exception as e:
+        st.error("Error logging run data. Please try again or contact support.")
 
 # Streamlit UI
 st.title("Personal Running Analysis")
@@ -410,22 +492,21 @@ if auth_action == "Login":
 
             # Data visualization
             st.subheader("Run Analysis")
-            with connect_to_snowflake() as conn:
-                query = """
+            with get_engine().connect() as conn:
+                query = text("""
                     SELECT run_type, distance, run_time, "Stamina Run (minutes)"
                     FROM run_data
-                    WHERE user_id = (SELECT user_id FROM users WHERE username = %s)
-                """
-
-                df = pd.read_sql(query, conn)
+                    WHERE user_id = (SELECT user_id FROM users WHERE username = :username)
+                """)
+                df = pd.read_sql(query, conn, params={"username": input_username})
 
             # Parse `Stamina Run (minutes)` column if it exists
             if 'Stamina Run (minutes)' in df.columns:
                 df['Stamina Run (minutes)'] = df['Stamina Run (minutes)'].apply(
                     lambda x: {
-                        'num_sets': int(x.split('x')[0]),
-                        'duration_per_set': int(x.split('x')[1])
-                    } if isinstance(x, str) and 'x' in x else {'num_sets': 1, 'duration_per_set': int(x) if isinstance(x, str) else x}
+                        'num_reps': int(x.split('x')[0]),
+                        'duration_per_rep': int(x.split('x')[1])
+                    } if isinstance(x, str) and 'x' in x else {'num_reps': 1, 'duration_per_rep': int(x) if isinstance(x, str) else x}
                 )
                 # Convert nested dictionary to separate columns for compatibility
                 df = pd.concat([df, pd.json_normalize(df['Stamina Run (minutes)'])], axis=1).drop(columns=['Stamina Run (minutes)'])
@@ -474,24 +555,3 @@ elif auth_action == "Sign Up":
             st.success("Account created successfully! Please log in.")
         except Exception as e:
             st.error(f"Error: {str(e)}")
-
-# Main code to execute in the Streamlit app
-if __name__ == "__main__":
-    # Sample data for testing the view
-    weekly_schedule = {
-        "Endurance": {
-            "goal": {"Distance": "3.5 miles", "Pace": "11'44''", "BPM": 150},
-            "performance": {"Distance": "4 miles", "Pace": "10'44''", "BPM": 150}
-        },
-        "Stamina": {
-            "goal": {"Duration": "16'", "Distance": "1.67 miles", "Pace": "9'36''", "BPM": 180},
-            "performance": {"Duration": "17'", "Distance": "1.7 miles", "Pace": "9'20''", "BPM": 178}
-        },
-        "Speed": {
-            "goal": {"Interval Time": "1:56", "Intervals": 5},
-            "performance": {"Interval Time": "1:54", "Intervals": 6}
-        }
-    }
-    
-    # Display the weekly schedule view
-    weekly_schedule_view(weekly_schedule)
