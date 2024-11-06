@@ -1,6 +1,7 @@
 streamlit
 snowflake-connector-python
+snowflake-sqlalchemy
 bcrypt
 pandas
 matplotlib
-SQLAlchemy
+sqlalchemy
