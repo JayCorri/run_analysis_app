@@ -492,24 +492,15 @@ if auth_action == "Login":
             # Data visualization
             st.subheader("Run Analysis")
             with get_engine().connect() as conn:
+                # Query without "Stamina Run (minutes)"
                 query = text("""
-                    SELECT run_type, distance, run_time, "Stamina Run (minutes)"
+                    SELECT run_type, distance, run_time
                     FROM run_data
                     WHERE user_id = (SELECT user_id FROM users WHERE username = :username)
                 """)
                 df = pd.read_sql(query, conn, params={"username": input_username})
 
-            # Parse `Stamina Run (minutes)` column if it exists
-            if 'Stamina Run (minutes)' in df.columns:
-                df['Stamina Run (minutes)'] = df['Stamina Run (minutes)'].apply(
-                    lambda x: {
-                        'num_reps': int(x.split('x')[0]),
-                        'duration_per_rep': int(x.split('x')[1])
-                    } if isinstance(x, str) and 'x' in x else {'num_reps': 1, 'duration_per_rep': int(x) if isinstance(x, str) else x}
-                )
-                # Convert nested dictionary to separate columns for compatibility
-                df = pd.concat([df, pd.json_normalize(df['Stamina Run (minutes)'])], axis=1).drop(columns=['Stamina Run (minutes)'])
-
+            # Check if dataframe has data
             if not df.empty:
                 # Plot each run type
                 for run in ["Endurance", "Stamina", "Speed"]:
