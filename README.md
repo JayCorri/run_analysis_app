@@ -121,3 +121,43 @@ This structure supports future flexibility, allowing new regimens to be added ea
 | `speed_distance_per_rep` | FLOAT     | Distance per speed repetition                        |
 
 Each entry in `SCHEDULES` corresponds to a specific week and regimen, facilitating easy filtering and display of schedules in the app.
+
+
+## New Features in v3.0
+
+### Session Persistence
+User-selected regimen and weekly training goals are now persistent across sessions, allowing users to resume where they left off upon logging back in. This change provides a seamless experience with personalized progression tracking.
+
+### Custom Regimen Logic
+The app includes special week handling per regimen:
+- **NSW Candidate Regimen**: If the user completes the 34-week training program and does not choose to begin the Marathon regimen, the app automatically places the user in maintenance mode, repeating week 34 goals.
+- **Marathon Trainer Regimen**: Recognizes specific training weeks:
+  - **Marathon Week** (first week of the month)
+  - **Short and Fast Week** (last week of the month)
+  - **Normal Week** (all other weeks)
+
+These features ensure a tailored experience based on the user’s selected regimen and training progress.
+
+### Database Consolidation
+All schedule data is now consolidated within a Snowflake table (`schedules`), enabling a unified structure for accessing and updating user goals.
+
+---
+
+## Setup Requirements
+
+Ensure the following configurations for deploying the app:
+1. **Snowflake Database Configuration**:
+   - The `users` and `schedules` tables should be configured in Snowflake as per v3.0 schema changes.
+   - User credentials and session data are managed within Snowflake.
+
+2. **Dependencies**:
+   - Required packages in `requirements.txt` include:
+     - `streamlit`
+     - `snowflake-connector-python`
+     - `snowflake-sqlalchemy`
+     - `bcrypt`
+     - `pandas`
+     - `matplotlib`
+     - `sqlalchemy`
+
+Refer to the **CHANGELOG.md** for a full list of enhancements and changes in this release.
