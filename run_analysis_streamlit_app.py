@@ -33,7 +33,7 @@ def get_available_regimens():
     
     :return: DataFrame of regimen_id and regimen_name.
     """
-    query = "SELECT regimen_id, regimen_name FROM schedules"
+    query = "SELECT regimen_id, regimen_name FROM training_regimens"
     with get_engine().connect() as conn:
         regimens = pd.read_sql(query, conn)
     return regimens
@@ -454,12 +454,12 @@ def log_run_data(user_id, run_type, distance=None, avg_pace=None, cadence=None,
 # Retrieve available training regimens from Snowflake
 def get_available_regimens():
     """
-    Fetches available regimens from the schedules table in Snowflake.
+    Fetches available regimens from the training_regimens table in Snowflake.
     
     :return: DataFrame with regimen_id and regimen_name.
     Error Handling: Returns empty DataFrame if no regimens are found.
     """
-    query = "SELECT regimen_id, regimen_name FROM schedules"
+    query = "SELECT regimen_id, regimen_name FROM training_regimens"
     with get_engine().connect() as conn:
         regimens = pd.read_sql(query, conn)
     return regimens
