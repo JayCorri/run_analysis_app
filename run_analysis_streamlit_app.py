@@ -478,7 +478,7 @@ def get_regimen_schedule(regimen_id):
         SELECT week, endurance_distance, stamina_reps, stamina_time_per_rep, 
                speed_reps, speed_distance_per_rep
         FROM schedules
-        WHERE regimen_id = {regimen_id}
+        WHERE regimen_id = :regimen_id
         ORDER BY week
     """
     with get_engine().connect() as conn:
