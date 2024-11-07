@@ -473,6 +473,7 @@ def get_regimen_schedule(regimen_id):
     :return: DataFrame with weekly schedule data for the specified regimen.
     Error Handling: Returns empty DataFrame if regimen ID is not found.
     """
+    regimen_id = int(regimen_id)
     query = """
         SELECT week, endurance_distance, stamina_reps, stamina_time_per_rep, 
                speed_reps, speed_distance_per_rep
@@ -480,9 +481,8 @@ def get_regimen_schedule(regimen_id):
         WHERE regimen_id = {regimen_id}
         ORDER BY week
     """
-    regimen_id = int(regimen_id)
     with get_engine().connect() as conn:
-        schedule_df = pd.read_sql(query, conn)
+        schedule_df = pd.read_sql(query, conn, params={"regimen_id": regimen_id})
     return schedule_df
 
 # Streamlit UI
