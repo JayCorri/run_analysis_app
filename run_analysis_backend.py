@@ -501,8 +501,8 @@ def load_user_settings(username):
         user_settings = conn.execute(query, {"username": username}).fetchone()
         
         # Set session state with saved settings or default to NSW regimen and Week 1
-        st.session_state['regimen_id'] = user_settings['regimen_id'] if user_settings else 101
-        st.session_state['current_week'] = user_settings['current_week'] if user_settings else 1
+        st.session_state['regimen_id'] = user_settings[0] if user_settings else 101
+        st.session_state['current_week'] = user_settings[1] if user_settings else 1
 
 def login_user(username, password):
     if authenticate(username, password):  # Replace with actual authentication function
