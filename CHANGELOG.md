@@ -1,5 +1,36 @@
 # Changelog
 
+
+
+## v3.1 - Major Structural Update
+
+### Added
+- **New Regimen Selection**: Users can now choose between multiple training regimens.
+- **Session Persistence**: Users' regimen and current week settings are saved across sessions.
+- **Run Analysis with Metrics**: Tracks and displays data for endurance, stamina, and speed runs.
+
+### Changed
+- **Modular Structure**: Separated backend logic to `run_analysis_backend.py` and UI code to `run_analysis_streamlit_app.py` for maintainability and scalability.
+- **Database**: Integrated Snowflake as the primary data store for all user and run data.
+- **Error Handling**: Enhanced error handling in database operations with more descriptive feedback in Streamlit.
+
+## v3.0 - Major Enhancements and Database Restructure - 2024-11-06
+
+### Added
+- **Session Persistence**: User-selected regimen and week settings are now persistent across sessions.
+- **Dynamic Week Progression**: System increments weekly training schedules based on user performance and goals.
+- **Custom Regimen Logic**: NSW regimen defaults to maintenance mode after week 34. Marathon regimen handles specialized weeks (marathon and short/fast weeks).
+- **Error Handling Improvements**: Enhanced error handling and logging for a more resilient user experience.
+
+### Changed
+- **Database Consolidation**: All schedules now stored in Snowflake with revised `schedules` table, eliminating the `schedule_df` dataframe dependency.
+- **User Table Structure**: Modified `users` table to track regimen preferences, allowing week progressions to persist across sessions.
+- **Code Refactoring**: Refactored functions to integrate Snowflake queries, streamline goal checks, and remove deprecated schedule dataframes.
+
+### Fixed
+- Fixed various session management issues causing users to be logged out on certain UI changes.
+- Addressed `regimen_id` and other parameter binding issues across Snowflake SQL queries.
+
 ## Version 2.1 - 2024-11-06
 
 ### Added
@@ -26,20 +57,3 @@
 - **Database Integrity Checks**: Enhanced validation for user data to prevent duplicate or missing records when switching regimens.
 - **UI Loading Issues on Mobile**: Improved mobile performance by optimizing page load times and data fetching for a responsive experience.
 - **Error Handling for Missing Schedule Data**: Resolved issues with accessing schedules by ensuring each regimen has a unique `regimen_id`, allowing clear differentiation between regimens.
-
-## v3.0 - Major Enhancements and Database Restructure
-
-### Added
-- **Session Persistence**: User-selected regimen and week settings are now persistent across sessions.
-- **Dynamic Week Progression**: System increments weekly training schedules based on user performance and goals.
-- **Custom Regimen Logic**: NSW regimen defaults to maintenance mode after week 34. Marathon regimen handles specialized weeks (marathon and short/fast weeks).
-- **Error Handling Improvements**: Enhanced error handling and logging for a more resilient user experience.
-
-### Changed
-- **Database Consolidation**: All schedules now stored in Snowflake with revised `schedules` table, eliminating the `schedule_df` dataframe dependency.
-- **User Table Structure**: Modified `users` table to track regimen preferences, allowing week progressions to persist across sessions.
-- **Code Refactoring**: Refactored functions to integrate Snowflake queries, streamline goal checks, and remove deprecated schedule dataframes.
-
-### Fixed
-- Fixed various session management issues causing users to be logged out on certain UI changes.
-- Addressed `regimen_id` and other parameter binding issues across Snowflake SQL queries.
