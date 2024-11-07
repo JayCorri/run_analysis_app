@@ -288,3 +288,68 @@ This UI/UX revamp will enhance usability, making key metrics more accessible whi
 - Confirm the column rename or implement quote-based compatibility adjustments in Snowflake.
 - Test the updated query syntax in the Snowflake environment to ensure proper functionality.
 - Verify that SQLAlchemy reads the modified schema and resolves the error without further issues.
+
+
+### Activity Log Design Notes
+
+The **Activity Log** section will mirror the developer’s own handwritten run journal, bringing an authentic, personalized style to the app’s logging system. Below are the detailed structural elements inspired by the developer’s journal:
+
+---
+
+### Weekly Format
+Each week begins and ends with clear indicators:
+- **Start of Week**: Begins with a line that labels the target goals for each run type.
+- **End of Week Summary**: Concludes with a summary line of weekly stats, including:
+  - **Run Completion**: Format `Runs/Goal = % Completed`
+  - **Run Days**: Days (MWF, for instance)
+  - **Weekly Totals**: Miles run, average pace, and total run time.
+
+**Example:**
+`/W1   3/3 = 100%    3 runs MWF, 5.8 miles, 10'40" Pace, 1:02:06 T(t)`
+---
+
+### Target Goals Section
+The **Target Goals** line kicks off each week and outlines performance goals for the week:
+- **Endurance**: Target distance, target pace, and music BPM.
+- **Stamina**: Target time, distance, pace, and music BPM.
+- **Speed**: Interval duration (time) and total intervals.
+
+**Example:**
+
+W2________________________________________________________________________________________
+     Target Goals:
+          Endurance: 3.5 mi, 11'44" Pace, 150 bpm
+          Stamina: 16', 1.67 mi, 9'36" Pace, 180 bpm
+          Speed: 1:56 T(t) intervals: 5
+
+---
+
+### Daily Entries
+Daily entries capture the specific details for each run:
+- **Date & Type**: Starts with date and run type (`Endurance`, `Stamina`, or `Speed`).
+- **Metrics**:
+  - **Endurance Runs**: Distance, pace, time, cadence, BPM, breathing ratio, effort level.
+  - **Stamina Runs**: Time, distance, pace, BPM, breathing ratio, cadence, and effort level.
+  - **Speed Intervals**: Each interval (logged with time and effort level per set).
+    - Breath rhythm is noted as **max flow** to reflect the high effort level required.
+
+- **Off Days**: Logged chronologically as `M/D - off` for days without running.
+
+**Example Entries:**
+     11/4 - Endurance, 4.0 mi, 10'44" Pace, 42:59 T(t), 154 cadence, 150 bpm - 2:2, effort 6/10
+     11/5 - off
+     11/6 - Stamina, 17:02, 1.67 miles, 10'10" Pace, 180 bpm - 2:3, 151 cadence, effort 8/10
+     11/7 - off
+     11/8 - Speed 4x1/4 mile intervals
+                     1.    1:52, 10/10 max flow
+                     2.    1:52, 10/10 max flow
+                     3.    1:52, 10/10 max flow
+                     4.    1:52, 10/10 max flow
+
+---
+
+### Additional Details
+- **Breathing Rhythm Notation**: Breathing ratio is logged as `2:2`, `2:3`, etc., to indicate inhale/exhale rhythm.
+- **Effort Level**: Captured on a 1-10 scale for each run or interval, denoted next to the metrics.
+
+This design captures the structured, detailed, and personal nature of the developer’s journaling style and adds a highly customizable, visual experience to the Activity Log, suitable for thorough performance tracking.
