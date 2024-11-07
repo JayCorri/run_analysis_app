@@ -482,7 +482,7 @@ def get_regimen_schedule(regimen_id):
     """
     regimen_id = int(regimen_id)
     with get_engine().connect() as conn:
-        schedule_df = pd.read_sql(query, conn, params={"regimen_id": regimen_id})
+        schedule_df = pd.read_sql(query, conn, params=(regimen_id,))
     return schedule_df
 
 # Streamlit UI
