@@ -353,3 +353,34 @@ Daily entries capture the specific details for each run:
 - **Effort Level**: Captured on a 1-10 scale for each run or interval, denoted next to the metrics.
 
 This design captures the structured, detailed, and personal nature of the developer’s journaling style and adds a highly customizable, visual experience to the Activity Log, suitable for thorough performance tracking.
+
+# Developer Notes for Run Analysis Streamlit App
+
+### Version: v2.1 Planning
+
+#### Current State (v2.0)
+- **Database Structure**: Updated the database schema to merge all training regimens (NSW Candidate and Marathon Trainer) into a single `SCHEDULES` table, identified by `regimen_id`.
+- **App Code**: Streamlit app (`run_analysis_streamlit_app.py`) now references the unified `SCHEDULES` table and dynamically loads training regimens based on `regimen_id`.
+- **UI Updates**: Implemented dropdown selection for training regimens, with `NSW Candidate` set as the default for new users. Added UI enhancements for better data submission and visualization.
+
+#### Next Steps for v2.1
+1. **Error Handling & Testing**:
+   - Verify that regimen selection dropdown functions correctly across sessions.
+   - Ensure `NSW Candidate` regimen loads by default and persists for new users.
+
+2. **Enhancements**:
+   - Add user feedback for successful regimen selection and data submission.
+   - Explore implementing role-based access in the app for different users (admin vs. regular user).
+   
+3. **Documentation & Cleanup**:
+   - Add any missing docstrings for new or updated functions.
+   - Refine README to align with the latest database schema changes and app capabilities.
+
+#### Other Considerations
+- **Developer Onboarding**: To facilitate future developers, consider implementing a standardized setup script for Snowflake and environment setup in the README.
+- **Testing Pipeline**: Set up a basic CI/CD pipeline to test app and database compatibility with each versioned commit.
+
+---
+
+_Last Updated: 2024-11-06_
+git add .

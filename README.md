@@ -90,3 +90,34 @@ FROM run_data WHERE user_id = [user_id] GROUP BY run_type;
 - **Additional Regimens**: Expand the regimen library to include options tailored for specific goals, such as trail running, ultra-marathons, or recreational 5K training.
 - **Advanced Analytics**: Incorporate deeper insights, such as tracking trends over time, visualizing improvements in pace, or measuring heart rate data.
 - **Personalized Recommendations**: Provide automated recommendations for users based on performance history and feedback, suggesting regimen adjustments or cross-training.
+
+**Version: 2.1**
+
+### Training Regimens and Schedules
+
+To accommodate multiple training regimens, the database includes:
+
+- **TRAINING_REGIMENS Table**: Stores available regimens, each identified by a unique `regimen_id` and `regimen_name`.
+- **SCHEDULES Table**: Stores weekly schedule details for each regimen, referenced by `regimen_id` to link to the respective regimen in `TRAINING_REGIMENS`.
+
+This structure supports future flexibility, allowing new regimens to be added easily without altering the app’s core functionality.
+
+#### TRAINING_REGIMENS Table
+| Column         | Data Type | Description                       |
+|----------------|-----------|-----------------------------------|
+| `regimen_id`   | INT       | Unique identifier for each regimen |
+| `regimen_name` | VARCHAR   | Descriptive name of the regimen   |
+
+#### SCHEDULES Table
+| Column                   | Data Type | Description                                          |
+|--------------------------|-----------|------------------------------------------------------|
+| `schedule_id`            | INT       | Unique identifier for each schedule entry            |
+| `regimen_id`             | INT       | Foreign key linking to `TRAINING_REGIMENS`           |
+| `week`                   | INT       | Week number within the regimen                       |
+| `endurance_distance`     | FLOAT     | Distance goal for endurance runs                     |
+| `stamina_reps`           | INT       | Number of reps for stamina training                  |
+| `stamina_time_per_rep`   | FLOAT     | Time allocated per stamina rep                       |
+| `speed_reps`             | INT       | Number of speed repetitions                          |
+| `speed_distance_per_rep` | FLOAT     | Distance per speed repetition                        |
+
+Each entry in `SCHEDULES` corresponds to a specific week and regimen, facilitating easy filtering and display of schedules in the app.

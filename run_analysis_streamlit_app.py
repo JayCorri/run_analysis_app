@@ -1,15 +1,13 @@
 """
 Run Analysis Streamlit App
-Version: 2.0
+Version: 2.1
 
 Description:
-This application tracks a user's run metrics and sets personalized weekly goals. Supports three run types (Endurance, Stamina, Speed) with unique metrics for each. 
-The app is enhanced to allow users to select from multiple training regimens, expanding options and personalization.
-
-New Features in 2.0:
-- Integrated dynamic training regimen selection with available regimens stored in Snowflake.
-- Supports both the NSW Candidate Run Regimen and Marathon Trainer Regimen, with the ability to expand to additional regimens.
-- Streamlined data visualization and goal-setting based on user-selected regimen.
+This application tracks user run metrics with support for multiple training regimens.
+New Features:
+- Integrated regimen selection from the unified 'schedules' table
+- Default regimen set to NSW Candidate Regimen, with option for Marathon Trainer Regimen
+- Structured to allow easy addition of future training regimens
 """
 
 
@@ -27,7 +25,19 @@ def get_engine():
     return create_engine(
         f"snowflake://{st.secrets['SNOWFLAKE']['USER']}:{st.secrets['SNOWFLAKE']['PASSWORD']}@{st.secrets['SNOWFLAKE']['ACCOUNT']}/{st.secrets['SNOWFLAKE']['DATABASE']}/{st.secrets['SNOWFLAKE']['SCHEMA']}?warehouse={st.secrets['SNOWFLAKE']['WAREHOUSE']}&role={st.secrets['SNOWFLAKE']['ROLE']}"
     )
-        
+
+# Fetch available training regimens from the database
+def get_available_regimens():
+    """
+    Retrieves all available training regimens for selection in the app.
+    
+    :return: DataFrame of regimen_id and regimen_name.
+    """
+    query = "SELECT regimen_id, regimen_name FROM training_regimens"
+    with get_engine().connect() as conn:
+        regimens = pd.read_sql(query, conn)
+    return regimens
+   
 # Register a new user with hashed password
 def register_user(username, email, password):
     """
@@ -492,14 +502,16 @@ if auth_action == "Login":
         if authenticate(input_username, input_password):
             st.success("Login successful!")
 
-            # Regimen Selection
-            st.subheader("Select Training Regimen")
-            available_regimens = get_available_regimens()
-            regimen_dict = dict(zip(available_regimens['regimen_name'], available_regimens['regimen_id']))
-            selected_regimen = st.selectbox("Choose your training regimen:", options=regimen_dict.keys(), index=0)
-            selected_regimen_id = regimen_dict[selected_regimen]
+            # Fetch available regimens and set default to NSW Candidate Regimen
+            regimens = get_available_regimens()
+            regimen_options = regimens['regimen_name'].tolist()
+            regimen_id = regimens[regimens['regimen_name'] == "NSW Candidate Regimen"]['regimen_id'].values[0]
 
-            # Display Weekly Schedule
+            # Regimen selection dropdown
+            selected_regimen = st.selectbox("Select Training Regimen", regimen_options, index=0)
+            selected_regimen_id = regimens[regimens['regimen_name'] == selected_regimen]['regimen_id'].values[0]
+
+            # Display Weekly Schedule for the selected regimen
             st.subheader(f"Weekly Running Schedule for {selected_regimen}")
             schedule = get_regimen_schedule(selected_regimen_id)
             st.dataframe(schedule)
@@ -508,20 +520,17 @@ if auth_action == "Login":
             st.subheader("Enter New Run Data")
             st.write("Use the Nike Run Club app to gather your data, then enter the details below.")
 
-            # Dropdown to select the run type
+            # Run type and data entry
             run_type = st.selectbox("Run Type", ["Endurance", "Stamina", "Speed"])
-
-            # Input fields for run details
             distance = st.number_input("Distance (miles)", min_value=0.0, step=0.01)
             avg_pace = st.text_input("Average Pace (e.g., 7'38\")")
             run_time = st.text_input("Time (e.g., 01:57)")
             cadence = st.number_input("Cadence", min_value=0, step=1)
             effort = st.slider("Effort (1 to 10)", min_value=1.0, max_value=10.0, step=0.5)
             location = st.selectbox("Location", ["Street", "Track", "Trail"])
-            music_bpm = st.selectbox("Music BPM", list(range(0, 205, 5)))  # Options in increments of 5
-            breathing_tempo = st.text_input("Breathing Tempo (e.g., 2:2 for inhale 2 steps, exhale 2 steps)")
+            music_bpm = st.selectbox("Music BPM", list(range(0, 205, 5)))
+            breathing_tempo = st.text_input("Breathing Tempo (e.g., 2:2)")
 
-            # Submission button
             submit_data_button = st.button("Submit Data")
 
             if submit_data_button:
@@ -536,14 +545,9 @@ if auth_action == "Login":
             # Data Visualization
             st.subheader("Run Analysis")
             with get_engine().connect() as conn:
-                query = text("""
-                    SELECT run_type, distance, run_time
-                    FROM run_data
-                    WHERE user_id = (SELECT user_id FROM users WHERE username = :username)
-                """)
+                query = text("SELECT run_type, distance, run_time FROM run_data WHERE user_id = (SELECT user_id FROM users WHERE username = :username)")
                 df = pd.read_sql(query, conn, params={"username": input_username})
 
-            # Visualization Logic
             if not df.empty:
                 for run in ["Endurance", "Stamina", "Speed"]:
                     run_data = df[df['run_type'] == run]
@@ -551,7 +555,7 @@ if auth_action == "Login":
                         fig, ax = plt.subplots()
                         ax.plot(run_data["distance"], run_data["run_time"], marker='o')
                         ax.set_title(f"{run} Run Analysis")
-                        ax.set_xlabel("Distance (miles)")
+                        ax.set_xlabel("Distance (km)")
                         ax.set_ylabel("Time (minutes)")
                         st.pyplot(fig)
             else:
