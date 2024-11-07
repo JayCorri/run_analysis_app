@@ -1,10 +1,15 @@
 """
 Run Analysis Streamlit App
-Version: 1.3
+Version: 2.0
 
 Description:
 This application tracks a user's run metrics and sets personalized weekly goals. Supports three run types (Endurance, Stamina, Speed) with unique metrics for each. 
-Updated to include flexible fields for varying metrics (rep_count, rep_distance, rep_time) based on run type.
+The app is enhanced to allow users to select from multiple training regimens, expanding options and personalization.
+
+New Features in 2.0:
+- Integrated dynamic training regimen selection with available regimens stored in Snowflake.
+- Supports both the NSW Candidate Run Regimen and Marathon Trainer Regimen, with the ability to expand to additional regimens.
+- Streamlined data visualization and goal-setting based on user-selected regimen.
 """
 
 
@@ -210,7 +215,7 @@ def get_next_week_goals(current_week):
     if not next_week_data.empty:
         return {
             "Endurance Distance (miles)": next_week_data['Endurance Distance (miles)'].values[0],
-            "Stamina Run (minutes)": next_week_data['Stamina Run (minutes)'].values[0],
+            "Stamina Run Duration": next_week_data['Stamina Run Duration'].values[0],  # Updated key name
             "Speed Intervals": next_week_data['Speed Intervals'].values[0]
         }
     return None
@@ -436,6 +441,39 @@ def log_run_data(user_id, run_type, distance=None, avg_pace=None, cadence=None,
     except Exception as e:
         st.error("Error logging run data. Please try again or contact support.")
 
+# Retrieve available training regimens from Snowflake
+def get_available_regimens():
+    """
+    Fetches available regimens from the training_regimens table in Snowflake.
+    
+    :return: DataFrame with regimen_id and regimen_name.
+    Error Handling: Returns empty DataFrame if no regimens are found.
+    """
+    query = "SELECT regimen_id, regimen_name FROM training_regimens"
+    with get_engine().connect() as conn:
+        regimens = pd.read_sql(query, conn)
+    return regimens
+
+# Retrieve the schedule for a specific training regimen
+def get_regimen_schedule(regimen_id):
+    """
+    Fetches weekly schedule details for the selected training regimen.
+    
+    :param regimen_id: The ID of the selected training regimen.
+    :return: DataFrame with weekly schedule data for the specified regimen.
+    Error Handling: Returns empty DataFrame if regimen ID is not found.
+    """
+    query = """
+        SELECT week, endurance_distance, stamina_reps, stamina_time_per_rep, 
+               speed_reps, speed_distance_per_rep
+        FROM regimen_schedules
+        WHERE regimen_id = :regimen_id
+        ORDER BY week
+    """
+    with get_engine().connect() as conn:
+        schedule_df = pd.read_sql(query, conn, params={"regimen_id": regimen_id})
+    return schedule_df
+
 # Streamlit UI
 st.title("Personal Running Analysis")
 
@@ -454,12 +492,19 @@ if auth_action == "Login":
         if authenticate(input_username, input_password):
             st.success("Login successful!")
 
-            # Display Running Schedule Table
-            st.subheader("Weekly Running Schedule")
-            st.write("This table outlines your planned schedule for endurance, stamina, and speed goals:")
-            st.dataframe(schedule_df)
+            # Regimen Selection
+            st.subheader("Select Training Regimen")
+            available_regimens = get_available_regimens()
+            regimen_dict = dict(zip(available_regimens['regimen_name'], available_regimens['regimen_id']))
+            selected_regimen = st.selectbox("Choose your training regimen:", options=regimen_dict.keys(), index=0)
+            selected_regimen_id = regimen_dict[selected_regimen]
 
-            # Data submission section
+            # Display Weekly Schedule
+            st.subheader(f"Weekly Running Schedule for {selected_regimen}")
+            schedule = get_regimen_schedule(selected_regimen_id)
+            st.dataframe(schedule)
+
+            # Data Submission Section
             st.subheader("Enter New Run Data")
             st.write("Use the Nike Run Club app to gather your data, then enter the details below.")
 
@@ -480,7 +525,6 @@ if auth_action == "Login":
             submit_data_button = st.button("Submit Data")
 
             if submit_data_button:
-                # Collect data to update the schedule
                 run_data = {
                     "endurance": distance if run_type == "Endurance" else 0,
                     "stamina": run_time if run_type == "Stamina" else 0,
@@ -489,10 +533,9 @@ if auth_action == "Login":
                 check_and_update_schedule(input_username, run_data)
                 st.success("Run data submitted and schedule updated successfully!")
 
-            # Data visualization
+            # Data Visualization
             st.subheader("Run Analysis")
             with get_engine().connect() as conn:
-                # Query without "Stamina Run (minutes)"
                 query = text("""
                     SELECT run_type, distance, run_time
                     FROM run_data
@@ -500,22 +543,21 @@ if auth_action == "Login":
                 """)
                 df = pd.read_sql(query, conn, params={"username": input_username})
 
-            # Check if dataframe has data
+            # Visualization Logic
             if not df.empty:
-                # Plot each run type
                 for run in ["Endurance", "Stamina", "Speed"]:
                     run_data = df[df['run_type'] == run]
                     if not run_data.empty:
                         fig, ax = plt.subplots()
                         ax.plot(run_data["distance"], run_data["run_time"], marker='o')
                         ax.set_title(f"{run} Run Analysis")
-                        ax.set_xlabel("Distance (km)")
+                        ax.set_xlabel("Distance (miles)")
                         ax.set_ylabel("Time (minutes)")
                         st.pyplot(fig)
             else:
                 st.write("No data available for this user.")
 
-            # Suggested goals for next week
+            # Suggested Goals for Next Week
             st.subheader("Suggested Goals for Next Week")
             user_weeks = get_user_schedule_progress(input_username)
             next_week_goals = {

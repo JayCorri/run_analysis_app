@@ -1,89 +1,68 @@
 # Run Analysis Streamlit App
-**Version: 1.3**
+**Version: 2.0**
 
 ## Description
-The Run Analysis App is designed to track your running schedule and set personalized performance goals for the following week. Built on a schedule recommended by the Naval Special Warfare Department (NSW) and validated against peer-reviewed research, this app enables comprehensive tracking of running metrics—such as endurance, stamina, and speed—through individualized weekly goals. Integration with Snowflake provides secure data storage, multi-user authentication, and tailored insights into each user’s progress and potential.
+The Run Analysis App provides personalized run training analytics with flexible weekly goals and performance metrics. Now featuring a choice between the "NSW Candidate Run Regimen" and the "Marathon Trainer Regimen," the app enables users to follow structured training schedules, dynamically adjusting based on performance and progression.
 
 ## Suggested Companion App
-For optimal use, we recommend gathering run data from a health and GPS monitoring app like the Nike Run Club Mobile App. This app provides detailed metrics such as distance, pace, and cadence, which can be logged into the Run Analysis App for goal setting and performance analysis.
+For data logging, use a GPS-enabled running app like Nike Run Club. Gather metrics like distance, pace, and cadence, which can then be logged in the Run Analysis App for customized goal setting and progress tracking.
 
-## Project Structure
-### 1. Database Setup
+## Key Functionalities
+
+### User Authentication
+- **Register/Login**: Secure account creation and access, with password encryption for secure storage.
+  
+### Training Regimen Selection
+- **Dynamic Regimen Switching**: Users can choose from stored regimens, with "NSW Candidate Run Regimen" as the default for new users.
+- **Regimen-Specific Goals**: Tracks endurance, stamina, and speed for each regimen, adjusting goals dynamically.
+
+### Run Data Logging
+- **Flexible Data Entry**: Users can log detailed metrics, including run type, distance, time, cadence, effort, location, and breathing patterns.
+  
+### Weekly Goal Tracking
+- **Regimen-Based Goals**: Weekly targets are generated from the chosen regimen, supporting each user’s unique pace and progression.
+- **Scorecards**: Each run type (endurance, stamina, speed) has a color-coded scorecard showing target goals and user performance.
+
+### Data Visualization
+- **Performance Analysis**: Visualize weekly distance, pace, and stamina metrics with charts for each run type.
+- **Goal Progress Tracking**: Progress toward weekly goals is dynamically displayed, encouraging consistent improvement.
+
+### Maintenance Mode
+- **Automatic Transition**: When a user completes all weeks in a regimen, they are prompted to enter "Maintenance Mode" or switch to a new regimen, such as the "Marathon Trainer Regimen."
+
+### Mobile-Optimized UI
+- **Responsive Design**: Mobile-first layout with bottom navigation for quick access to main features, including performance goals, metrics, and data entry.
+
+### Error Handling
+- **Regimen Transitions**: Smooth user experience when switching regimens or completing the final week in a schedule.
+- **Enhanced Validation**: Ensures data integrity, especially when users update schedules or switch regimens.
+
+## Database and Project Structure
+
+### Database Setup
 **Database:** `run_analysis_db`  
 **Schema:** `run_data_schema`  
 **Tables:**
-- **users:** Stores user information for authentication and account management.
-- **run_data:** Logs each run’s details, including type, distance, cadence, effort, and environmental factors.
-- **user_schedule_progress:** Tracks weekly progress for users in each run type category (endurance, stamina, speed).
+- **users:** Authentication and account management.
+- **run_data:** Detailed records for each logged run.
+- **training_regimens:** Stores training schedules for each available regimen.
+- **user_schedule_progress:** Tracks weekly progress across endurance, stamina, and speed metrics.
 
-### 2. Tables and Fields
-#### Users Table: `users`
-| Field          | Type    | Description                              |
-|----------------|---------|------------------------------------------|
-| user_id        | INT     | Primary Key, unique user identifier      |
-| username       | VARCHAR | Unique username for user login           |
-| email          | VARCHAR | User's email, used for login and recovery|
-| password_hash  | VARCHAR | Hashed password                          |
+#### Training Regimens Table: `training_regimens`
+Stores weekly training data for each available regimen, supporting easy switching and expansion.
 
-#### Run Data Table: `run_data`
-Logs detailed information for each run entry, supporting both high-level insights and granular analysis.
+| Column              | Type    | Description                                           |
+|---------------------|---------|-------------------------------------------------------|
+| `regimen_name`      | VARCHAR | Name of the regimen (e.g., NSW Candidate Run Regimen) |
+| `week_number`       | INT     | Week number in the regimen                            |
+| `endurance_goal`    | FLOAT   | Target distance for endurance runs                    |
+| `stamina_reps`      | INT     | Repetitions for stamina training                      |
+| `stamina_time_per_rep` | INT  | Time per stamina rep in minutes                       |
+| `speed_reps`        | INT     | Repetitions for speed intervals                       |
+| `speed_distance_per_rep` | FLOAT | Distance per speed rep (miles)                     |
 
-| Column             | Data Type             | Description                                                       |
-|--------------------|-----------------------|-------------------------------------------------------------------|
-| `RUN_ID`           | NUMBER(38,0)          | Primary key, unique identifier for each run                       |
-| `USER_ID`          | NUMBER(38,0)          | Foreign key linking to the `users` table                          |
-| `RUN_TYPE`         | VARCHAR(16777216)     | Type of run: 'Endurance', 'Stamina', or 'Speed'                   |
-| `DISTANCE`         | FLOAT                 | Total distance covered during the run (miles)                     |
-| `AVG_PACE`         | VARCHAR(16777216)     | Average pace for the run, displayed as minutes per mile/km        |
-| `CADENCE`          | NUMBER(38,0)          | Average steps per minute                                          |
-| `EFFORT`           | FLOAT                 | Self-rated effort level on a 1.0 to 10.0 scale                    |
-| `LOCATION`         | VARCHAR(16777216)     | Location of the run (e.g., Street, Track, Trail)                  |
-| `MUSIC_BPM`        | NUMBER(38,0)          | Music beats per minute during the run                             |
-| `BREATHING_TEMPO`  | VARCHAR(16777216)     | Breathing pattern in steps per inhale/exhale                      |
-| `RUN_DATE`         | TIMESTAMP_NTZ(9)      | Timestamp of the run, defaults to current date and time           |
-| `RUN_TIME`         | NUMBER(38,0)          | Total duration of the run in seconds                              |
-| `RUN_TIME_SECONDS` | NUMBER(38,0)          | Alternative representation of run duration in seconds             |
-| `REPS`             | NUMBER(38,0)          | Number of repetitions (intervals) for specific run types          |
-| `REP_DISTANCE`     | FLOAT                 | Distance per repetition for interval training (miles)             |
-| `REP_TIME`         | FLOAT                 | Time per repetition for interval training (seconds)               |
+## Example Queries
 
-#### User Schedule Progress Table: `user_schedule_progress`
-| Field            | Type      | Description                                 |
-|------------------|-----------|---------------------------------------------|
-| user_id          | INT       | Foreign Key, links to `users.user_id`       |
-| endurance_week   | FLOAT     | Average weekly endurance metrics            |
-| stamina_week     | FLOAT     | Average weekly stamina metrics              |
-| speed_week       | FLOAT     | Average weekly speed metrics                |
-
-## Key Functionalities
-### User Authentication
-- Register, login, and password recovery functionality with secure password hashing.
-  
-### Run Data Logging
-- Allows users to log detailed run information, including metrics and environmental factors like location and music BPM.
-
-### Weekly Goal Tracking
-- Tracks user progress across endurance, stamina, and speed categories, adjusting weekly goals based on data inputs. Default goals are generated for new users from `schedule_df`.
-
-### Scorecard Display
-- Introduces color-coded scorecards for each run type (endurance, stamina, speed) that display target goals alongside user performance. Supports mobile and desktop views.
-
-### Data Visualization
-- Summarizes and visualizes key metrics in the app interface. Displays top-level metrics (distance, pace, music BPM) prominently, with additional details accessible for each run type.
-
-### Real-time Progress Tracking
-- Tracks user progress toward weekly goals in endurance, stamina, and speed, dynamically adjusting schedules based on user performance.
-
-### Mobile-Optimized UI
-- Mobile-first interface featuring stacked scorecards for easy navigation, a bottom navigation bar, and toggle options for weekly, monthly, and yearly views of metrics.
-
-### Enhanced Error Handling
-- Added handling for cases where user data is absent. Defaults to a beginner-friendly goal structure if no prior data is available, ensuring a seamless experience for new users.
-
-### Manual Goal Adjustments
-- Users can manually adjust performance goals, with an option to reset to app-generated defaults.
-
-## Predefined Queries
 ```sql
 -- Retrieve all data for a specific user
 SELECT * FROM run_data WHERE user_id = [user_id];
@@ -96,11 +75,18 @@ WHERE user_id = [user_id] AND run_type = 'Endurance';
 SELECT run_type, COUNT(run_id), AVG(distance), AVG(cadence), AVG(effort) 
 FROM run_data WHERE user_id = [user_id] GROUP BY run_type;
 ```
+---
 
 ## Usage Notes
 
-- **Data Aggregation:** Uses timestamps and grouping by `run_type` for detailed analytics on user performance.
-- **Security:** Each user’s data is isolated; queries should include `user_id` for user-specific retrieval.
-- **Data Security:** Implements Snowflake’s role-based access controls to restrict access to sensitive information, ensuring each user can only access their own data.
-- **Sensitive Information:** Handles sensitive user data (like email addresses and hashed passwords) through secure Snowflake storage, accessible only through authenticated API calls.
-- **Effort Tracking:** Recorded on a 1-10 scale with 0.5 increments to track intensity.
+- **Data Aggregation**: Aggregates weekly performance data by `run_type` (endurance, stamina, speed) to provide personalized insights and goal setting.
+- **Secure User Data**: Implements Snowflake's role-based access to keep user data secure. Sensitive data like email addresses and passwords are encrypted and stored securely.
+- **Error Handling**: Extensive error handling ensures the app gracefully manages scenarios such as missing user data, regimen transitions, and empty schedules.
+- **User-Friendly Progress Tracking**: Weekly goals are automatically set based on the user’s selected regimen and adjusted dynamically each week.
+- **Maintenance Mode**: Allows users who complete all weeks in a regimen to either stay in a maintenance schedule or transition to a more advanced regimen, with suggestions based on their current performance level.
+
+## Future Enhancements
+
+- **Additional Regimens**: Expand the regimen library to include options tailored for specific goals, such as trail running, ultra-marathons, or recreational 5K training.
+- **Advanced Analytics**: Incorporate deeper insights, such as tracking trends over time, visualizing improvements in pace, or measuring heart rate data.
+- **Personalized Recommendations**: Provide automated recommendations for users based on performance history and feedback, suggesting regimen adjustments or cross-training.
