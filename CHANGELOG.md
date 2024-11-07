@@ -1,8 +1,18 @@
 # Changelog
 
+## v3.1.1 - Error Handling and Logging Enhancements - 2024-11-07
 
+### Added
+- **Error Handling**: Added robust error handling across all backend functions, with each function wrapped in a logging mechanism to capture errors.
 
-## v3.1 - Major Structural Update
+### Changed
+- **Error Logging to Database**: Errors are now logged to a dedicated database table (`error_logs`), storing details like timestamp, function name, error message, and relevant parameters.
+- **Error Notification in Streamlit**: Each error triggers a user-friendly message within the Streamlit app, providing immediate feedback about where the issue occurred.
+
+### Fixed
+- **Improved Code Structure**: Streamlined backend functions with consistent error logging practices, enhancing reliability and debugging efficiency.
+
+## v3.1 - Major Structural Update - 2024-11-07
 
 ### Added
 - **New Regimen Selection**: Users can now choose between multiple training regimens.
@@ -43,14 +53,12 @@
 - **Regimen Selection in UI**: Users can now select a regimen from available options, defaulting to the NSW Candidate Regimen.
 - **Enhanced Database Structure for Multiple Regimens**: Streamlined database schema by adding a `regimen_id` foreign key in `SCHEDULES`, referencing `TRAINING_REGIMENS` for easier management and scalability of new training regimens.
 
-
 ### Changed
 - **UI Overhaul**: Streamlined UI with separate sections for performance analysis, weekly goal tracking, and regimen management. Optimized mobile views with a bottom navigation bar for easy access to main features.
 - **Enhanced Goal Tracking and Personalization**: Weekly goals and progress tracking now reflect the selected regimen, dynamically adjusting based on user preferences and schedule progression.
 - **Streamlined Data Flow**: Simplified SQL queries for regimen selection and schedule updates to improve performance and maintainability.
 - **Database Schema Optimization**: Removed separate tables for NSW Candidate Regimen and Marathon Trainer Regimen, consolidating all schedules into a single `SCHEDULES` table identified by `regimen_id`.
 - **Streamlined Regimen Queries**: Updated SQL queries in the app to support unified access to schedules by regimen, allowing seamless addition of future regimens without schema changes.
-
 
 ### Fixed
 - **Error Handling for Regimen Transitions**: Added validation to ensure smooth transition between regimens with appropriate prompts for next steps.

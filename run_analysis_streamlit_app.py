@@ -1,13 +1,17 @@
 """
 Run Analysis Streamlit App
-Version: 3.1
+Version: 3.1.1
 
 Description:
 This application tracks user run metrics with support for multiple training regimens, allowing users to
 choose between predefined schedules and save progress across sessions. The app interface enables 
 users to select a training regimen, log run data, and view weekly goals.
 
-New Features in v3.1:
+New Features in v3.1.1:
+- **Error Notifications**: Each backend error triggers a detailed user-friendly message within the Streamlit app.
+- **Error Logging**: Backend functions log errors to a database table and provide Streamlit feedback.
+
+Previous Features in v3.1:
 - **Session Persistence**: Users' regimen and current week settings are saved and loaded across sessions.
 - **Modular Structure**: Backend functions moved to a separate file (`run_analysis_backend.py`) for improved maintainability.
 - **Enhanced Regimen Selection**: Integrated regimen selection with default set to NSW Candidate or Marathon Trainer.
