@@ -6,7 +6,7 @@ Description:
 This application tracks user run metrics with support for multiple training regimens.
 New Features:
 - Integrated regimen selection from the unified 'schedules' table
-- Default regimen set to NSW Candidate Regimen, with option for Marathon Trainer Regimen
+- Default regimen set to NSW Candidate Run Regimen, with option for Marathon Trainer Regimen
 - Structured to allow easy addition of future training regimens
 """
 
@@ -502,10 +502,10 @@ if auth_action == "Login":
         if authenticate(input_username, input_password):
             st.success("Login successful!")
 
-            # Fetch available regimens and set default to NSW Candidate Regimen
+            # Fetch available regimens and set default to NSW Candidate Run Regimen
             regimens = get_available_regimens()
             regimen_options = regimens['regimen_name'].tolist()
-            regimen_id = regimens[regimens['regimen_name'] == "NSW Candidate Regimen"]['regimen_id'].values[0]
+            regimen_id = regimens[regimens['regimen_name'] == "NSW Candidate Run Regimen"]['regimen_id'].values[0]
 
             # Regimen selection dropdown
             selected_regimen = st.selectbox("Select Training Regimen", regimen_options, index=0)
