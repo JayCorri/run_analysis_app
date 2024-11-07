@@ -474,7 +474,7 @@ def get_regimen_schedule(regimen_id):
     Error Handling: Returns empty DataFrame if regimen ID is not found.
     """
     regimen_id = int(regimen_id)
-    query = """
+    query = f"""
         SELECT week, endurance_distance, stamina_reps, stamina_time_per_rep, 
                speed_reps, speed_distance_per_rep
         FROM schedules
