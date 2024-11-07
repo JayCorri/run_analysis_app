@@ -477,12 +477,12 @@ def get_regimen_schedule(regimen_id):
         SELECT week, endurance_distance, stamina_reps, stamina_time_per_rep, 
                speed_reps, speed_distance_per_rep
         FROM schedules
-        WHERE regimen_id = :regimen_id
+        WHERE regimen_id = {regimen_id}
         ORDER BY week
     """
     regimen_id = int(regimen_id)
     with get_engine().connect() as conn:
-        schedule_df = pd.read_sql(query, conn, params=(regimen_id,))
+        schedule_df = pd.read_sql(query, conn)
     return schedule_df
 
 # Streamlit UI
