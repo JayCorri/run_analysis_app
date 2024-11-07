@@ -480,6 +480,7 @@ def get_regimen_schedule(regimen_id):
         WHERE regimen_id = :regimen_id
         ORDER BY week
     """
+    regimen_id = int(regimen_id)
     with get_engine().connect() as conn:
         schedule_df = pd.read_sql(query, conn, params={"regimen_id": regimen_id})
     return schedule_df
