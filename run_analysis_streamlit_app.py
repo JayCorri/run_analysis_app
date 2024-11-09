@@ -71,7 +71,6 @@ def main_app_ui():
     # Update database and session state if regimen or week changes
     if new_regimen_id != st.session_state['regimen_id'] or selected_week != st.session_state['current_week']:
         backend.update_user_settings(st.session_state['username'], new_regimen_id, selected_week)
-        #st.experimental_rerun()
 
     # Weekly Schedule and Run Data Input
     display_schedule_and_goals(st.session_state['regimen_id'], st.session_state['current_week'])
@@ -99,7 +98,6 @@ def main_app_ui():
     # Log Out Button
     if st.button("Logout"):
         backend.logout_user()
-        #st.experimental_rerun()
 
 # Helper function: Display schedule and goals
 def display_schedule_and_goals(regimen_id, current_week):
@@ -109,10 +107,11 @@ def display_schedule_and_goals(regimen_id, current_week):
 
     st.subheader("Suggested Goals for Next Week")
     user_weeks = backend.get_user_schedule_progress(st.session_state['username'])
+    user_regimen = st.session_state['regimen_id']
     next_week_goals = {
-        "Endurance": backend.get_next_week_goals(user_weeks['endurance_week']),
-        "Stamina": backend.get_next_week_goals(user_weeks['stamina_week']),
-        "Speed": backend.get_next_week_goals(user_weeks['speed_week'])
+        "Endurance": backend.get_next_week_goals(user_weeks['endurance_week'], user_regimen),
+        "Stamina": backend.get_next_week_goals(user_weeks['stamina_week'], user_regimen),
+        "Speed": backend.get_next_week_goals(user_weeks['speed_week'], user_regimen)
     }
     if any(next_week_goals.values()):
         st.write("Next week goals:", next_week_goals)
@@ -138,7 +137,6 @@ if not st.session_state['is_logged_in']:
                 st.session_state['is_logged_in'] = True
                 st.session_state['username'] = input_username
                 backend.load_user_settings(input_username)  # Load saved user settings
-                #st.experimental_rerun()
             else:
                 st.error("Invalid credentials. Please try again.")
     
