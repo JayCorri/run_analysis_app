@@ -46,6 +46,8 @@ if 'regimen_id' not in st.session_state:
     st.session_state['regimen_id'] = 101  # Default to NSW Candidate regimen
 if 'current_week' not in st.session_state:
     st.session_state['current_week'] = 1  # Default starting week
+if 'trigger_rerun' in st.session_state and st.session_state['trigger_rerun']:
+    st.session_state['trigger_rerun'] = False
 
 #Streamlit UI
 
@@ -69,7 +71,7 @@ def main_app_ui():
     # Update database and session state if regimen or week changes
     if new_regimen_id != st.session_state['regimen_id'] or selected_week != st.session_state['current_week']:
         backend.update_user_settings(st.session_state['username'], new_regimen_id, selected_week)
-        st.experimental_rerun()
+        #st.experimental_rerun()
 
     # Weekly Schedule and Run Data Input
     display_schedule_and_goals(st.session_state['regimen_id'], st.session_state['current_week'])
@@ -97,7 +99,7 @@ def main_app_ui():
     # Log Out Button
     if st.button("Logout"):
         backend.logout_user()
-        st.experimental_rerun()
+        #st.experimental_rerun()
 
 # Helper function: Display schedule and goals
 def display_schedule_and_goals(regimen_id, current_week):
@@ -136,7 +138,7 @@ if not st.session_state['is_logged_in']:
                 st.session_state['is_logged_in'] = True
                 st.session_state['username'] = input_username
                 backend.load_user_settings(input_username)  # Load saved user settings
-                st.experimental_rerun()
+                #st.experimental_rerun()
             else:
                 st.error("Invalid credentials. Please try again.")
     
